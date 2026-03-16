@@ -1656,14 +1656,26 @@
       </div>
     </div>
 
-    <div id="mcLoadPrompt" style="text-align:center;padding:40px 0">
-      <p style="color:var(--muted);margin-bottom:12px">Enter your Mailchimp API key to load campaign data.</p>
-      <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:12px">
-        <input type="password" id="mcKeyInput" placeholder="Mailchimp API Key (e.g. abc123-us14)" style="min-width:320px;background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:12px">
-        <button class="btn-sm btn-outline" onclick="document.getElementById('mcKeyInput').type=document.getElementById('mcKeyInput').type==='password'?'text':'password'">Show</button>
+    <div id="mcLoadPrompt" style="text-align:center;padding:40px 0;max-width:600px;margin:0 auto">
+      <p style="color:var(--text);font-size:14px;margin-bottom:16px;font-weight:600">Mailchimp Setup</p>
+      <div style="text-align:left;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="margin-bottom:12px">
+          <label style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Proxy URL (Cloudflare Worker)</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="mcProxyInput" placeholder="https://mc-proxy.your-account.workers.dev" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:12px">
+          </div>
+          <p style="font-size:9px;color:var(--muted);margin-top:4px">Deploy <code style="color:var(--accent2)">mailchimp-proxy-worker.js</code> to Cloudflare Workers (free) and paste the URL here.</p>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Mailchimp API Key</label>
+          <div style="display:flex;gap:6px">
+            <input type="password" id="mcKeyInput" placeholder="abc123def456-us14" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:12px">
+            <button class="btn-sm btn-outline" onclick="document.getElementById('mcKeyInput').type=document.getElementById('mcKeyInput').type==='password'?'text':'password'">Show</button>
+          </div>
+        </div>
       </div>
-      <button id="mcLoadBtn" onclick="saveMcKeyAndLoad()">Load Mailchimp Data</button>
-      <p style="color:var(--muted);font-size:10px;margin-top:8px">Key is stored locally in your browser. Never sent anywhere except Mailchimp API.</p>
+      <button id="mcLoadBtn" onclick="saveMcKeyAndLoad()" style="padding:10px 28px">Load Mailchimp Data</button>
+      <p style="color:var(--muted);font-size:10px;margin-top:10px">Keys are stored only in your browser's localStorage.</p>
     </div>
 
     <div id="mcContent" style="display:none">
@@ -1782,9 +1794,21 @@
     let selectedCampaignAG = '';
 
     // ===================== MAILCHIMP CONFIG =====================
-    const MC_PROXY = 'https://corsproxy.io/?';
     function getMcApiKey() { return localStorage.getItem('pricefox_mc_key') || ''; }
-    function getMcBaseUrl() { const k = getMcApiKey(); const dc = k.split('-').pop() || 'us14'; return 'https://' + dc + '.api.mailchimp.com/3.0'; }
+    function getMcProxyUrl() { return localStorage.getItem('pricefox_mc_proxy') || ''; }
+    async function mcApiFetch(endpoint, apiKey) {
+      const proxyBase = getMcProxyUrl();
+      if (!proxyBase) throw new Error('No proxy URL configured. Deploy the Cloudflare Worker first.');
+      const url = proxyBase.replace(/\/+$/, '') + '/mc' + endpoint;
+      const resp = await fetch(url, {
+        headers: { 'X-MC-Key': apiKey }
+      });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        throw new Error('Mailchimp API error ' + resp.status + (txt ? ': ' + txt : ''));
+      }
+      return resp.json();
+    }
     let MC_DATA = null;
     let mcState = { page: 1, sortCol: 'send_time', sortDir: 'desc', filtered: [] };
     let mcLoaded = false;
@@ -2170,10 +2194,10 @@
         // Lazy-load Mailchimp data on first visit
         if (tab.dataset.tab === 'mailchimp' && !mcLoaded && !MC_DATA) {
           const savedKey = getMcApiKey();
-          if (savedKey) {
-            document.getElementById('mcKeyInput').value = savedKey;
-            fetchMailchimpData();
-          }
+          const savedProxy = getMcProxyUrl();
+          if (savedProxy) document.getElementById('mcProxyInput').value = savedProxy;
+          if (savedKey) document.getElementById('mcKeyInput').value = savedKey;
+          if (savedKey && savedProxy) fetchMailchimpData();
         }
       });
     });
@@ -4128,9 +4152,13 @@
 
     // ===================== MAILCHIMP =====================
     function saveMcKeyAndLoad() {
-      const inp = document.getElementById('mcKeyInput');
-      const key = inp.value.trim();
+      const proxyInp = document.getElementById('mcProxyInput');
+      const keyInp = document.getElementById('mcKeyInput');
+      const proxy = proxyInp.value.trim();
+      const key = keyInp.value.trim();
+      if (!proxy) { alert('Please enter the Cloudflare Worker proxy URL.'); return; }
       if (!key || !key.includes('-')) { alert('Please enter a valid Mailchimp API key (format: xxxxx-usXX)'); return; }
+      localStorage.setItem('pricefox_mc_proxy', proxy);
       localStorage.setItem('pricefox_mc_key', key);
       fetchMailchimpData();
     }
@@ -4142,15 +4170,7 @@
       btn.disabled = true;
       btn.textContent = 'Loading...';
       try {
-        const baseUrl = getMcBaseUrl();
-        const url = MC_PROXY + encodeURIComponent(baseUrl + '/campaigns?count=100&sort_field=send_time&sort_dir=DESC&fields=campaigns.id,campaigns.settings.title,campaigns.settings.subject_line,campaigns.send_time,campaigns.emails_sent,campaigns.report_summary,campaigns.status');
-        const resp = await fetch(url, {
-          headers: {
-            'Authorization': 'Basic ' + btoa('anystring:' + apiKey)
-          }
-        });
-        if (!resp.ok) throw new Error('Mailchimp API error: ' + resp.status);
-        const json = await resp.json();
+        const json = await mcApiFetch('/campaigns?count=100&sort_field=send_time&sort_dir=DESC&fields=campaigns.id,campaigns.settings.title,campaigns.settings.subject_line,campaigns.send_time,campaigns.emails_sent,campaigns.report_summary,campaigns.status', apiKey);
         MC_DATA = (json.campaigns || []).map(c => ({
           id: c.id,
           title: (c.settings && c.settings.title) || '',
