@@ -1,0 +1,4324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricefox.gr — GSC Power Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --border: #2a2d3a;
+      --text: #e4e4e7;
+      --muted: #9ca3af;
+      --accent: #6366f1;
+      --accent2: #22d3ee;
+      --green: #22c55e;
+      --red: #ef4444;
+      --orange: #f97316;
+      --purple: #a78bfa;
+      --yellow: #eab308
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 16px 20px
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .control-group label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    input[type=date],
+    input[type=text],
+    input[type=number],
+    select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 12px;
+      outline: none
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent)
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    button:hover {
+      opacity: .85
+    }
+
+    button:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 11px;
+      border-radius: 5px
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted)
+    }
+
+    .btn-outline:hover,
+    .btn-outline.active {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .btn-trend {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 2px 7px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap
+    }
+
+    .btn-trend:hover {
+      border-color: var(--orange);
+      color: var(--orange)
+    }
+
+    .btn-trend.loading {
+      opacity: .5;
+      cursor: wait
+    }
+
+    .kpi-row-5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 20px
+    }
+
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 3px
+    }
+
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700
+    }
+
+    .kpi-sub {
+      font-size: 10px;
+      margin-top: 2px
+    }
+
+    .kpi-prev {
+      font-size: 9px;
+      color: var(--muted)
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px
+    }
+
+    .card h2 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .card h2 .count {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400
+    }
+
+    .chart-box {
+      position: relative;
+      height: 240px
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .tab {
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .2s
+    }
+
+    .tab:hover {
+      color: var(--text)
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent)
+    }
+
+    .tab-content {
+      display: none
+    }
+
+    .tab-content.active {
+      display: block
+    }
+
+    .filter-bar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px
+    }
+
+    .filter-bar h3 {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 10px
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: flex-end
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .filter-group label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .filter-group input,
+    .filter-group select {
+      min-width: 160px
+    }
+
+    .filter-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px
+    }
+
+    .filter-tag {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(99, 102, 241, .15);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px
+    }
+
+    .filter-tag .remove {
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7
+    }
+
+    .filter-tag .remove:hover {
+      opacity: 1
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 6px 5px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap
+    }
+
+    th:hover {
+      color: var(--accent)
+    }
+
+    th.sorted-asc::after {
+      content: ' \u2191';
+      color: var(--accent)
+    }
+
+    th.sorted-desc::after {
+      content: ' \u2193';
+      color: var(--accent)
+    }
+
+    td {
+      padding: 6px 5px;
+      border-bottom: 1px solid rgba(42, 45, 58, .5)
+    }
+
+    tr:hover {
+      background: rgba(99, 102, 241, .06)
+    }
+
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums
+    }
+
+    .page-url {
+      max-width: 350px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 10px;
+      cursor: pointer
+    }
+
+    .page-url:hover {
+      color: var(--accent);
+      text-decoration: underline
+    }
+
+    .kw-cell {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .up {
+      color: var(--green)
+    }
+
+    .down {
+      color: var(--red)
+    }
+
+    .new-tag {
+      color: var(--purple);
+      font-size: 10px
+    }
+
+    .neutral {
+      color: var(--muted)
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border)
+    }
+
+    .pagination .info {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .pagination .pages {
+      display: flex;
+      gap: 4px
+    }
+
+    .pagination .pages button {
+      padding: 4px 10px;
+      font-size: 11px
+    }
+
+    .presets {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap
+    }
+
+    .preset-btn {
+      padding: 4px 10px;
+      font-size: 10px;
+      border-radius: 5px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer
+    }
+
+    .preset-btn:hover,
+    .preset-btn.active {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .loader {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      z-index: 999;
+      overflow: hidden
+    }
+
+    .loader.active {
+      display: block
+    }
+
+    .loader::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      animation: slide .8s ease infinite
+    }
+
+    @keyframes slide {
+      0% {
+        left: -40%
+      }
+
+      100% {
+        left: 100%
+      }
+    }
+
+    .error-msg {
+      background: rgba(239, 68, 68, .1);
+      border: 1px solid rgba(239, 68, 68, .3);
+      color: var(--red);
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      display: none;
+      font-size: 12px
+    }
+
+    .export-btn {
+      padding: 4px 12px;
+      font-size: 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 5px
+    }
+
+    .export-btn:hover {
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, .7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center
+    }
+
+    .modal-overlay.active {
+      display: flex
+    }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 8px
+    }
+
+    .modal-close:hover {
+      color: var(--text)
+    }
+
+    .modal h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      padding-right: 40px
+    }
+
+    .modal .modal-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px
+    }
+
+    .modal .chart-box {
+      height: 300px
+    }
+
+    .modal .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px
+    }
+
+    .modal .stat {
+      text-align: center;
+      padding: 10px;
+      background: var(--bg);
+      border-radius: 8px
+    }
+
+    .modal .stat-label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase
+    }
+
+    .modal .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 2px
+    }
+
+    /* Auth */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px
+    }
+
+    .auth-overlay h1 {
+      font-size: 28px;
+      margin-bottom: 10px
+    }
+
+    .auth-overlay p {
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 400px;
+      text-align: center;
+      line-height: 1.6
+    }
+
+    .auth-btn {
+      padding: 12px 32px;
+      font-size: 15px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .auth-btn:hover {
+      opacity: .9
+    }
+
+    .auth-btn svg {
+      width: 20px;
+      height: 20px
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .user-info img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%
+    }
+
+    .signout-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      font-size: 10px;
+      border-radius: 5px
+    }
+
+    .speed-badge {
+      font-size: 9px;
+      color: var(--green);
+      background: rgba(34, 197, 94, .1);
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px
+    }
+
+    @media(max-width:900px) {
+      .kpi-row-5 {
+        grid-template-columns: repeat(3, 1fr)
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr
+      }
+
+      .modal .stats-row {
+        grid-template-columns: repeat(2, 1fr)
+      }
+    }
+
+    @media(max-width:600px) {
+      .kpi-row-5 {
+        grid-template-columns: repeat(2, 1fr)
+      }
+    }
+
+    .sub-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .sub-tab {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .2s
+    }
+
+    .sub-tab:hover {
+      color: var(--text)
+    }
+
+    .sub-tab.active {
+      color: var(--accent2);
+      border-bottom-color: var(--accent2)
+    }
+
+    .sub-content {
+      display: none
+    }
+
+    .sub-content.active {
+      display: block
+    }
+
+    .campaign-link {
+      cursor: pointer;
+      color: var(--accent2);
+      text-decoration: none
+    }
+
+    .campaign-link:hover {
+      text-decoration: underline
+    }
+
+    .core-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(34, 211, 238, .12);
+      color: var(--accent2);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      margin: 2px
+    }
+
+    .core-tag .remove {
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      opacity: .6
+    }
+
+    .core-tag .remove:hover {
+      opacity: 1;
+      color: var(--red)
+    }
+
+    .remove-core-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--red);
+      padding: 2px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer
+    }
+
+    .remove-core-btn:hover {
+      background: rgba(239, 68, 68, .15);
+      border-color: var(--red)
+    }
+
+    .opportunity-bar {
+      display: inline-block;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--green);
+      vertical-align: middle;
+      margin-right: 6px
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px
+    }
+
+    .breadcrumb a {
+      color: var(--accent2);
+      cursor: pointer;
+      text-decoration: none
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline
+    }
+
+    .breadcrumb .sep {
+      color: var(--border)
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="loader" id="loader"></div>
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- AUTH SCREEN -->
+  <div class="auth-overlay" id="authScreen">
+    <h1>Pricefox.gr GSC Dashboard</h1>
+    <p>Sign in with your Google account to access Search Console & GA4 data directly. No middleware — blazing fast.</p>
+    <button class="auth-btn" id="authBtn" onclick="doSignIn()">
+      <svg viewBox="0 0 24 24">
+        <path fill="#fff"
+          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+        <path fill="#fff"
+          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+        <path fill="#fff"
+          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+        <path fill="#fff"
+          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+      </svg>
+      Sign in with Google
+    </button>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="trendModal">
+    <div class="modal">
+      <button class="modal-close" id="modalClose">&times;</button>
+      <h2 id="modalTitle">—</h2>
+      <div class="modal-sub" id="modalSub"></div>
+      <div class="stats-row" id="modalStats"></div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Position Trend (3 months)</h2>
+        <div class="chart-box"><canvas id="trendPosChart"></canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Clicks Trend</h2>
+        <div class="chart-box"><canvas id="trendClicksChart"></canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Impressions & CTR</h2>
+        <div class="chart-box"><canvas id="trendImprChart"></canvas></div>
+      </div>
+      <div class="card" id="ga4TrendCard" style="display:none">
+        <h2>GA4 Sessions</h2>
+        <div class="chart-box"><canvas id="trendGA4Chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <h1>Pricefox.gr — GSC Dashboard</h1>
+      <span class="speed-badge">Direct API</span>
+    </div>
+    <div class="controls">
+      <div id="userInfo" class="user-info" style="display:none"></div>
+      <div class="presets">
+        <button class="preset-btn" data-days="7">7d</button>
+        <button class="preset-btn active" data-days="10">10d</button>
+        <button class="preset-btn" data-days="14">14d</button>
+        <button class="preset-btn" data-days="30">30d</button>
+        <button class="preset-btn" data-days="90">90d</button>
+      </div>
+      <div class="control-group">
+        <label>Start</label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="control-group">
+        <label>End</label>
+        <input type="date" id="endDate">
+      </div>
+      <div class="control-group">
+        <label>Compare</label>
+        <select id="compareMode">
+          <option value="none">No Comparison</option>
+          <option value="yoy">Previous Year</option>
+          <option value="prev_period">Previous Period</option>
+        </select>
+      </div>
+      <button id="loadBtn">Load Data</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row-5" id="mainKpis">
+    <div class="kpi">
+      <div class="kpi-label">Total Clicks</div>
+      <div class="kpi-value" style="color:var(--accent)" id="kpiClicks">—</div>
+      <div class="kpi-sub" id="kpiClicksChg"></div>
+      <div class="kpi-prev" id="kpiClicksPrev"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Impressions</div>
+      <div class="kpi-value" style="color:var(--accent2)" id="kpiImpr">—</div>
+      <div class="kpi-sub" id="kpiImprChg"></div>
+      <div class="kpi-prev" id="kpiImprPrev"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Avg CTR</div>
+      <div class="kpi-value" style="color:var(--green)" id="kpiCtr">—</div>
+      <div class="kpi-sub" id="kpiCtrChg"></div>
+      <div class="kpi-prev" id="kpiCtrPrev"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Avg Position</div>
+      <div class="kpi-value" style="color:var(--orange)" id="kpiPos">—</div>
+      <div class="kpi-sub" id="kpiPosChg"></div>
+      <div class="kpi-prev" id="kpiPosPrev"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">GA4 Sessions</div>
+      <div class="kpi-value" style="color:var(--purple)" id="kpiSessions">—</div>
+      <div class="kpi-sub" id="kpiSessionsChg"></div>
+      <div class="kpi-prev" id="kpiSessionsPrev"></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="queries">Queries <span id="qCount" class="count"></span></div>
+    <div class="tab" data-tab="pages">Pages <span id="pCount" class="count"></span></div>
+    <div class="tab" data-tab="ga4">GA4 <span id="gCount" class="count"></span></div>
+    <div class="tab" data-tab="ads">Ads <span id="adsCount" class="count"></span></div>
+    <div class="tab" data-tab="mailchimp">Mailchimp <span id="mcCount" class="count"></span></div>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="grid-2">
+      <div class="card">
+        <h2>Daily Clicks</h2>
+        <div class="chart-box"><canvas id="clicksChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Daily Impressions</h2>
+        <div class="chart-box"><canvas id="imprChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h2>Daily CTR %</h2>
+        <div class="chart-box"><canvas id="ctrChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Daily Avg Position</h2>
+        <div class="chart-box"><canvas id="posChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h2>Top 15 Keywords by Clicks</h2>
+        <div class="chart-box"><canvas id="kwOverviewChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Top 15 Pages by Clicks</h2>
+        <div class="chart-box"><canvas id="pgOverviewChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: QUERIES -->
+  <div class="tab-content" id="tab-queries">
+    <!-- QUERIES SUB-TABS -->
+    <div class="sub-tabs" id="querySubTabs">
+      <div class="sub-tab active" data-subtab="qall">All Queries</div>
+      <div class="sub-tab" data-subtab="qcore">Core Queries</div>
+      <div class="sub-tab" data-subtab="qlhf">Low Hanging Fruits</div>
+    </div>
+
+    <!-- SUB: ALL QUERIES -->
+    <div class="sub-content active" id="sub-qall">
+      <div class="filter-bar">
+        <h3>Filter Queries</h3>
+        <div class="filter-row">
+          <div class="filter-group"><label>Search</label><input type="text" id="qSearch" placeholder="Type keyword..."></div>
+          <div class="filter-group"><label>Match Type</label>
+            <select id="qMatchType">
+              <option value="contains">Contains</option>
+              <option value="exact">Exact Match</option>
+              <option value="regex">Regex</option>
+              <option value="not_contains">Does not contain</option>
+              <option value="not_regex">Does not match regex</option>
+            </select>
+          </div>
+          <div class="filter-group"><label>Min Clicks</label><input type="number" id="qMinClicks" placeholder="0" style="width:80px"></div>
+          <div class="filter-group"><label>Max Position</label><input type="number" id="qMaxPos" placeholder="100" style="width:80px"></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="qPerPage">
+              <option value="25">25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100" selected>100 rows</option>
+              <option value="250">250 rows</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm" id="qApplyFilter">Apply</button>
+          <button class="btn-sm btn-outline" id="qClearFilter">Clear</button>
+          <button class="btn-sm export-btn" id="qExport">Export CSV</button>
+        </div>
+        <div class="filter-tags" id="qFilterTags"></div>
+      </div>
+      <div class="card">
+        <h2>All Queries <span class="count" id="qResultCount"></span></h2>
+        <div style="overflow-x:auto">
+          <table id="qTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="keyword">Query</th>
+                <th>Trend</th>
+                <th data-col="clicks_cur" class="num">Clicks</th>
+                <th data-col="clicks_prev" class="num prev-col">Prev</th>
+                <th data-col="clicks_chg" class="num prev-col">Change</th>
+                <th data-col="impressions_cur" class="num">Impr</th>
+                <th data-col="impressions_prev" class="num prev-col">Prev</th>
+                <th data-col="ctr_cur" class="num">CTR</th>
+                <th data-col="ctr_prev" class="num prev-col">Prev</th>
+                <th data-col="position_cur" class="num">Pos</th>
+                <th data-col="position_prev" class="num prev-col">Prev</th>
+              </tr>
+            </thead>
+            <tbody id="qBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="qPagInfo"></div>
+          <div class="pages" id="qPagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB: CORE QUERIES -->
+    <div class="sub-content" id="sub-qcore">
+      <div class="filter-bar">
+        <h3>Manage Core Queries</h3>
+        <div class="filter-row" style="margin-bottom:10px">
+          <div class="filter-group"><label>Add Query</label><input type="text" id="coreAddInput" placeholder="Type keyword to add..." style="min-width:250px"></div>
+          <button class="btn-sm" id="coreAddBtn" style="background:var(--green)">+ Add</button>
+          <button class="btn-sm btn-outline" id="coreImportBtn">Import from clipboard</button>
+          <button class="btn-sm export-btn" id="coreExportList">Export List</button>
+          <button class="btn-sm" id="coreClearAll" style="background:var(--red)">Clear All</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted)" id="coreCount">0 core queries defined</div>
+        <div class="filter-tags" id="coreTagsWrap" style="max-height:120px;overflow-y:auto;margin-top:8px"></div>
+      </div>
+      <div class="filter-bar" style="margin-top:-8px">
+        <div class="filter-row">
+          <div class="filter-group"><label>Search</label><input type="text" id="coreSearch" placeholder="Filter core queries..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="corePerPage">
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm export-btn" id="coreExportCSV">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Core Queries Performance <span class="count" id="coreResultCount"></span></h2>
+        <div style="overflow-x:auto">
+          <table id="coreTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="keyword">Query</th>
+                <th>Trend</th>
+                <th data-col="clicks_cur" class="num">Clicks</th>
+                <th data-col="clicks_prev" class="num prev-col">Prev</th>
+                <th data-col="clicks_chg" class="num prev-col">Change</th>
+                <th data-col="impressions_cur" class="num">Impr</th>
+                <th data-col="impressions_prev" class="num prev-col">Prev</th>
+                <th data-col="ctr_cur" class="num">CTR</th>
+                <th data-col="ctr_prev" class="num prev-col">Prev</th>
+                <th data-col="position_cur" class="num">Pos</th>
+                <th data-col="position_prev" class="num prev-col">Prev</th>
+                <th>Remove</th>
+              </tr>
+            </thead>
+            <tbody id="coreBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="corePagInfo"></div>
+          <div class="pages" id="corePagBtns"></div>
+        </div>
+      </div>
+      <!-- Core KPIs summary -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px" id="coreKpis">
+        <div class="kpi"><div class="kpi-label">Core Clicks</div><div class="kpi-value" style="color:var(--accent);font-size:18px" id="coreKpiClicks">—</div></div>
+        <div class="kpi"><div class="kpi-label">Core Impressions</div><div class="kpi-value" style="color:var(--accent2);font-size:18px" id="coreKpiImpr">—</div></div>
+        <div class="kpi"><div class="kpi-label">Avg CTR</div><div class="kpi-value" style="color:var(--green);font-size:18px" id="coreKpiCtr">—</div></div>
+        <div class="kpi"><div class="kpi-label">Avg Position</div><div class="kpi-value" style="color:var(--orange);font-size:18px" id="coreKpiPos">—</div></div>
+      </div>
+    </div>
+
+    <!-- SUB: LOW HANGING FRUITS -->
+    <div class="sub-content" id="sub-qlhf">
+      <div class="filter-bar">
+        <h3>Low Hanging Fruits — Keywords close to page 1 with high impressions</h3>
+        <div class="filter-row">
+          <div class="filter-group"><label>Position Range</label>
+            <div style="display:flex;gap:4px;align-items:center">
+              <input type="number" id="lhfMinPos" value="4" style="width:60px" placeholder="Min">
+              <span style="color:var(--muted)">—</span>
+              <input type="number" id="lhfMaxPos" value="20" style="width:60px" placeholder="Max">
+            </div>
+          </div>
+          <div class="filter-group"><label>Min Impressions</label><input type="number" id="lhfMinImpr" value="100" style="width:80px"></div>
+          <div class="filter-group"><label>Search</label><input type="text" id="lhfSearch" placeholder="Filter..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="lhfPerPage">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm" id="lhfApply">Apply</button>
+          <button class="btn-sm export-btn" id="lhfExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Low Hanging Fruits <span class="count" id="lhfResultCount"></span></h2>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Keywords with position 4-20 and high impressions — optimize these for quick wins</div>
+        <div style="overflow-x:auto">
+          <table id="lhfTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="keyword">Query</th>
+                <th>Trend</th>
+                <th data-col="clicks_cur" class="num">Clicks</th>
+                <th data-col="impressions_cur" class="num">Impr</th>
+                <th data-col="ctr_cur" class="num">CTR</th>
+                <th data-col="position_cur" class="num">Pos</th>
+                <th data-col="opportunity" class="num">Opportunity</th>
+              </tr>
+            </thead>
+            <tbody id="lhfBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="lhfPagInfo"></div>
+          <div class="pages" id="lhfPagBtns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: PAGES -->
+  <div class="tab-content" id="tab-pages">
+    <div class="filter-bar">
+      <h3>Filter Pages</h3>
+      <div class="filter-row">
+        <div class="filter-group"><label>Search URL</label><input type="text" id="pSearch"
+            placeholder="Type URL path..."></div>
+        <div class="filter-group"><label>Match Type</label>
+          <select id="pMatchType">
+            <option value="contains">Contains</option>
+            <option value="exact">Exact Match</option>
+            <option value="regex">Regex</option>
+            <option value="not_contains">Does not contain</option>
+            <option value="not_regex">Does not match regex</option>
+          </select>
+        </div>
+        <div class="filter-group"><label>Min Clicks</label><input type="number" id="pMinClicks" placeholder="0"
+            style="width:80px"></div>
+        <div class="filter-group"><label>Max Position</label><input type="number" id="pMaxPos" placeholder="100"
+            style="width:80px"></div>
+        <div class="filter-group"><label>Show</label>
+          <select id="pPerPage">
+            <option value="25">25 rows</option>
+            <option value="50">50 rows</option>
+            <option value="100" selected>100 rows</option>
+            <option value="250">250 rows</option>
+            <option value="0">All</option>
+          </select>
+        </div>
+        <button class="btn-sm" id="pApplyFilter">Apply</button>
+        <button class="btn-sm btn-outline" id="pClearFilter">Clear</button>
+        <button class="btn-sm export-btn" id="pExport">Export CSV</button>
+      </div>
+      <div class="filter-tags" id="pFilterTags"></div>
+    </div>
+    <div class="card">
+      <h2>All Pages <span class="count" id="pResultCount"></span></h2>
+      <div style="overflow-x:auto">
+        <table id="pTable">
+          <thead>
+            <tr>
+              <th data-col="rank">#</th>
+              <th data-col="page">Page</th>
+              <th>Trend</th>
+              <th data-col="clicks_cur" class="num">Clicks</th>
+              <th data-col="clicks_prev" class="num prev-col">Prev</th>
+              <th data-col="clicks_chg" class="num prev-col">Change</th>
+              <th data-col="impressions_cur" class="num">Impr</th>
+              <th data-col="impressions_prev" class="num prev-col">Prev</th>
+              <th data-col="ctr_cur" class="num">CTR</th>
+              <th data-col="ctr_prev" class="num prev-col">Prev</th>
+              <th data-col="position_cur" class="num">Pos</th>
+              <th data-col="position_prev" class="num prev-col">Prev</th>
+            </tr>
+          </thead>
+          <tbody id="pBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="info" id="pPagInfo"></div>
+        <div class="pages" id="pPagBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: GA4 -->
+  <div class="tab-content" id="tab-ga4">
+    <!-- GA4 Sub-tabs -->
+    <div class="sub-tabs" id="ga4SubTabs">
+      <div class="sub-tab active" data-subtab="ga4overview">Overview</div>
+      <div class="sub-tab" data-subtab="ga4pages">Pages</div>
+      <div class="sub-tab" data-subtab="ga4audience">Audience</div>
+      <div class="sub-tab" data-subtab="ga4channels">Channels</div>
+      <div class="sub-tab" data-subtab="ga4ai">AI Traffic</div>
+    </div>
+
+    <!-- SUB: OVERVIEW -->
+    <div class="sub-content active" id="sub-ga4overview">
+      <div class="kpi-row-5" id="ga4OrgKpis">
+        <div class="kpi"><div class="kpi-label">Organic Sessions</div><div class="kpi-value" style="color:var(--accent)" id="kpiOrgSessions">—</div><div class="kpi-sub" id="kpiOrgSessionsChg"></div><div class="kpi-prev" id="kpiOrgSessionsPrev"></div></div>
+        <div class="kpi"><div class="kpi-label">Organic Users</div><div class="kpi-value" style="color:var(--accent2)" id="kpiOrgUsers">—</div><div class="kpi-sub" id="kpiOrgUsersChg"></div><div class="kpi-prev" id="kpiOrgUsersPrev"></div></div>
+        <div class="kpi"><div class="kpi-label">Engaged Sessions</div><div class="kpi-value" style="color:var(--green)" id="kpiOrgEngaged">—</div><div class="kpi-sub" id="kpiOrgEngagedChg"></div><div class="kpi-prev" id="kpiOrgEngagedPrev"></div></div>
+        <div class="kpi"><div class="kpi-label">Engagement Rate</div><div class="kpi-value" style="color:var(--orange)" id="kpiOrgEngRate">—</div><div class="kpi-sub" id="kpiOrgEngRateChg"></div><div class="kpi-prev" id="kpiOrgEngRatePrev"></div></div>
+        <div class="kpi"><div class="kpi-label">Bounce Rate</div><div class="kpi-value" style="color:var(--red)" id="kpiOrgBounce">—</div><div class="kpi-sub" id="kpiOrgBounceChg"></div><div class="kpi-prev" id="kpiOrgBouncePrev"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <h2>Daily Organic Traffic</h2>
+        <div class="chart-box"><canvas id="ga4OrgDailyChart"></canvas></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:20px" id="ga4QualityMetrics">
+        <div class="kpi"><div class="kpi-label">Engagement Rate</div><div class="kpi-value" style="color:var(--orange);font-size:18px" id="qmEngRate">—</div></div>
+        <div class="kpi"><div class="kpi-label">Engaged Sessions</div><div class="kpi-value" style="color:var(--green);font-size:18px" id="qmEngSessions">—</div></div>
+        <div class="kpi"><div class="kpi-label">Avg Session Duration</div><div class="kpi-value" style="color:var(--accent2);font-size:18px" id="qmAvgDuration">—</div></div>
+        <div class="kpi"><div class="kpi-label">Pages / Session</div><div class="kpi-value" style="color:var(--purple);font-size:18px" id="qmPagesPerSession">—</div></div>
+      </div>
+    </div>
+
+    <!-- SUB: PAGES -->
+    <div class="sub-content" id="sub-ga4pages">
+      <div class="card" style="margin-bottom:16px">
+        <h2>Landing Page Performance <span class="count" id="lpResultCount"></span></h2>
+        <div class="filter-row" style="margin-bottom:10px">
+          <div class="filter-group"><label>Search</label><input type="text" id="lpSearch" placeholder="Filter landing pages..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="lpPerPage"><option value="25">25</option><option value="50">50</option><option value="100" selected>100</option><option value="0">All</option></select>
+          </div>
+          <button class="btn-sm export-btn" id="lpExport">Export CSV</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="lpTable">
+            <thead><tr>
+              <th data-col="rank">#</th>
+              <th data-col="landingPage">Landing Page</th>
+              <th data-col="sessions" class="num">Sessions</th>
+              <th data-col="engagedSessions" class="num">Engaged</th>
+              <th data-col="engagementRate" class="num">Eng. Rate</th>
+              <th data-col="avgDuration" class="num">Avg Duration</th>
+            </tr></thead>
+            <tbody id="lpBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination"><div class="info" id="lpPagInfo"></div><div class="pages" id="lpPagBtns"></div></div>
+      </div>
+      <div class="card">
+        <h2>Content Engagement <span class="count" id="ceResultCount"></span></h2>
+        <div class="filter-row" style="margin-bottom:10px">
+          <div class="filter-group"><label>Search</label><input type="text" id="ceSearch" placeholder="Filter page paths..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="cePerPage"><option value="25">25</option><option value="50">50</option><option value="100" selected>100</option><option value="0">All</option></select>
+          </div>
+          <button class="btn-sm export-btn" id="ceExport">Export CSV</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="ceTable">
+            <thead><tr>
+              <th data-col="rank">#</th>
+              <th data-col="pagePath">Page Path</th>
+              <th data-col="pageViews" class="num">Page Views</th>
+              <th data-col="sessions" class="num">Sessions</th>
+              <th data-col="engagementRate" class="num">Eng. Rate</th>
+              <th data-col="engagementTime" class="num">Eng. Time</th>
+            </tr></thead>
+            <tbody id="ceBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination"><div class="info" id="cePagInfo"></div><div class="pages" id="cePagBtns"></div></div>
+      </div>
+    </div>
+
+    <!-- SUB: AUDIENCE -->
+    <div class="sub-content" id="sub-ga4audience">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+          <h2>Device Distribution</h2>
+          <div class="chart-box" style="height:200px"><canvas id="ga4DeviceChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Device Performance</h2>
+          <div style="overflow-x:auto">
+            <table id="devTable">
+              <thead><tr>
+                <th>Device</th><th class="num">Sessions</th><th class="num">Users</th><th class="num">Engaged</th><th class="num">Eng. Rate</th><th class="num">Conv</th>
+              </tr></thead>
+              <tbody id="devBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <h2>Geographic SEO Performance <span class="count" id="geoResultCount"></span></h2>
+        <div class="filter-row" style="margin-bottom:10px">
+          <div class="filter-group"><label>Search</label><input type="text" id="geoSearch" placeholder="Filter country/city..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="geoPerPage"><option value="25">25</option><option value="50">50</option><option value="100" selected>100</option><option value="0">All</option></select>
+          </div>
+          <button class="btn-sm export-btn" id="geoExport">Export CSV</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="geoTable">
+            <thead><tr>
+              <th data-col="rank">#</th>
+              <th data-col="country">Country</th>
+              <th data-col="city">City</th>
+              <th data-col="sessions" class="num">Sessions</th>
+              <th data-col="engagedSessions" class="num">Engaged</th>
+              <th data-col="conversions" class="num">Conv</th>
+            </tr></thead>
+            <tbody id="geoBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination"><div class="info" id="geoPagInfo"></div><div class="pages" id="geoPagBtns"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h2>New vs Returning Users</h2>
+          <div class="chart-box" style="height:200px"><canvas id="ga4NvRChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>New vs Returning Performance</h2>
+          <div style="overflow-x:auto">
+            <table id="nvrTable">
+              <thead><tr>
+                <th>Type</th><th class="num">Sessions</th><th class="num">Users</th><th class="num">Engaged</th><th class="num">Eng. Rate</th>
+              </tr></thead>
+              <tbody id="nvrBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB: CHANNELS -->
+    <div class="sub-content" id="sub-ga4channels">
+      <div class="card" style="margin-bottom:16px">
+        <h2>Channel Comparison</h2>
+        <div class="chart-box"><canvas id="ga4ChannelChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Channel Performance</h2>
+        <div style="overflow-x:auto">
+          <table id="chTable">
+            <thead><tr>
+              <th data-col="channel">Channel</th>
+              <th data-col="sessions" class="num">Sessions</th>
+              <th data-col="users" class="num">Users</th>
+              <th data-col="engagedSessions" class="num">Engaged</th>
+              <th data-col="engagementRate" class="num">Eng. Rate</th>
+              <th data-col="conversions" class="num">Conv</th>
+            </tr></thead>
+            <tbody id="chBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB: AI TRAFFIC -->
+    <div class="sub-content" id="sub-ga4ai">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="kpi">
+          <div class="kpi-label">AI Sessions (Total)</div>
+          <div class="kpi-value" style="color:var(--purple)" id="kpiAiSessions">—</div>
+          <div class="kpi-sub" id="kpiAiSessionsChg"></div>
+          <div class="kpi-prev" id="kpiAiSessionsPrev"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">AI Share of Total</div>
+          <div class="kpi-value" style="color:var(--accent2)" id="kpiAiShare">—</div>
+          <div class="kpi-sub" id="kpiAiShareSub"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Top AI Source</div>
+          <div class="kpi-value" style="font-size:14px;color:var(--muted)" id="kpiTopAiSource">—</div>
+          <div class="kpi-sub" id="kpiTopAiSourceSub"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <h2>Daily AI Sessions</h2>
+        <div class="chart-box"><canvas id="aiDailyChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>AI Traffic Sources</h2>
+        <div style="overflow-x:auto">
+          <table id="aiSrcTable">
+            <thead><tr>
+              <th>Source / Medium</th>
+              <th class="num">Sessions</th>
+            </tr></thead>
+            <tbody id="aiSrcBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: ADS -->
+  <div class="tab-content" id="tab-ads">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="kpi">
+        <div class="kpi-label">Total Ad Spend</div>
+        <div class="kpi-value" style="color:var(--yellow)" id="kpiAdSpend">—</div>
+        <div class="kpi-sub" id="kpiAdSpendChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total Ad Clicks</div>
+        <div class="kpi-value" style="color:var(--accent)" id="kpiAdClicks">—</div>
+        <div class="kpi-sub" id="kpiAdClicksChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total Impressions</div>
+        <div class="kpi-value" style="color:var(--accent2)" id="kpiAdImpr">—</div>
+        <div class="kpi-sub" id="kpiAdImprChg"></div>
+      </div>
+    </div>
+
+    <!-- ADS SUB-TABS -->
+    <div class="sub-tabs" id="adsSubTabs">
+      <div class="sub-tab active" data-subtab="campaigns">Campaigns</div>
+      <div class="sub-tab" data-subtab="searchterms">Search Terms</div>
+      <div class="sub-tab" data-subtab="adgroups">Ad Groups</div>
+    </div>
+
+    <!-- SUB: CAMPAIGNS -->
+    <div class="sub-content active" id="sub-campaigns">
+      <div class="filter-bar">
+        <h3>Filter Campaigns</h3>
+        <div class="filter-row">
+          <div class="filter-group"><label>Search</label><input type="text" id="adsSearch" placeholder="Campaign name..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="adsPerPage">
+              <option value="25">25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100" selected>100 rows</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm" id="adsApplyFilter">Apply</button>
+          <button class="btn-sm btn-outline" id="adsClearFilter">Clear</button>
+          <button class="btn-sm export-btn" id="adsExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Campaigns <span class="count" id="adsResultCount"></span></h2>
+        <div style="overflow-x:auto">
+          <table id="adsTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="name">Campaign</th>
+                <th data-col="cost" class="num">Cost</th>
+                <th data-col="clicks" class="num">Clicks</th>
+                <th data-col="impressions" class="num">Impr</th>
+                <th data-col="sessions" class="num">Sessions</th>
+                <th data-col="ctr" class="num">CTR</th>
+                <th data-col="cpc" class="num">Avg CPC</th>
+                <th data-col="conversions" class="num">Conv</th>
+              </tr>
+            </thead>
+            <tbody id="adsBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="adsPagInfo"></div>
+          <div class="pages" id="adsPagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB: SEARCH TERMS -->
+    <div class="sub-content" id="sub-searchterms">
+      <div class="breadcrumb" id="stBreadcrumb">
+        <a onclick="switchAdsSubTab('campaigns')">All Campaigns</a>
+        <span class="sep">›</span>
+        <span id="stCampaignName">Select a campaign</span>
+      </div>
+      <div class="filter-bar">
+        <h3>Campaign</h3>
+        <div class="filter-row">
+          <div class="filter-group"><label>Campaign</label>
+            <select id="stCampaignSelect" style="min-width:250px">
+              <option value="">— Select a campaign —</option>
+            </select>
+          </div>
+          <button class="btn-sm" id="stLoadBtn">Load Search Terms</button>
+          <div class="filter-group"><label>Search</label><input type="text" id="stSearch" placeholder="Filter terms..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="stPerPage">
+              <option value="25">25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100" selected>100 rows</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm btn-outline" id="stExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Search Terms <span class="count" id="stResultCount"></span></h2>
+        <div id="stLoading" style="display:none;text-align:center;padding:30px;color:var(--muted)">Loading search terms...</div>
+        <div id="stEmpty" style="text-align:center;padding:30px;color:var(--muted)">Select a campaign above to view its search terms.</div>
+        <div id="stTableWrap" style="display:none;overflow-x:auto">
+          <table id="stTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="query">Search Term</th>
+                <th data-col="cost" class="num">Cost</th>
+                <th data-col="clicks" class="num">Clicks</th>
+                <th data-col="impressions" class="num">Impr</th>
+                <th data-col="sessions" class="num">Sessions</th>
+                <th data-col="ctr" class="num">CTR</th>
+                <th data-col="cpc" class="num">Avg CPC</th>
+                <th data-col="conversions" class="num">Conv</th>
+              </tr>
+            </thead>
+            <tbody id="stBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="stPagInfo"></div>
+          <div class="pages" id="stPagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB: AD GROUPS -->
+    <div class="sub-content" id="sub-adgroups">
+      <div class="breadcrumb" id="agBreadcrumb">
+        <a onclick="switchAdsSubTab('campaigns')">All Campaigns</a>
+        <span class="sep">›</span>
+        <span id="agCampaignName">Select a campaign</span>
+      </div>
+      <div class="filter-bar">
+        <h3>Campaign</h3>
+        <div class="filter-row">
+          <div class="filter-group"><label>Campaign</label>
+            <select id="agCampaignSelect" style="min-width:250px">
+              <option value="">— Select a campaign —</option>
+            </select>
+          </div>
+          <button class="btn-sm" id="agLoadBtn">Load Ad Groups</button>
+          <div class="filter-group"><label>Search</label><input type="text" id="agSearch" placeholder="Filter ad groups..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="agPerPage">
+              <option value="25">25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100" selected>100 rows</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm btn-outline" id="agExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Ad Groups <span class="count" id="agResultCount"></span></h2>
+        <div id="agLoading" style="display:none;text-align:center;padding:30px;color:var(--muted)">Loading ad groups...</div>
+        <div id="agEmpty" style="text-align:center;padding:30px;color:var(--muted)">Select a campaign above to view its ad groups.</div>
+        <div id="agTableWrap" style="display:none;overflow-x:auto">
+          <table id="agTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="adGroup">Ad Group</th>
+                <th data-col="cost" class="num">Cost</th>
+                <th data-col="clicks" class="num">Clicks</th>
+                <th data-col="impressions" class="num">Impr</th>
+                <th data-col="sessions" class="num">Sessions</th>
+                <th data-col="ctr" class="num">CTR</th>
+                <th data-col="cpc" class="num">Avg CPC</th>
+                <th data-col="conversions" class="num">Conv</th>
+              </tr>
+            </thead>
+            <tbody id="agBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="agPagInfo"></div>
+          <div class="pages" id="agPagBtns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MAILCHIMP -->
+  <div class="tab-content" id="tab-mailchimp">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="kpi">
+        <div class="kpi-label">Total Campaigns (Sent)</div>
+        <div class="kpi-value" style="color:var(--accent)" id="kpiMcCampaigns">&mdash;</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg Open Rate</div>
+        <div class="kpi-value" style="color:var(--green)" id="kpiMcOpenRate">&mdash;</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg Click Rate</div>
+        <div class="kpi-value" style="color:var(--accent2)" id="kpiMcClickRate">&mdash;</div>
+      </div>
+    </div>
+
+    <div id="mcLoadPrompt" style="text-align:center;padding:40px 0">
+      <p style="color:var(--muted);margin-bottom:12px">Enter your Mailchimp API key to load campaign data.</p>
+      <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:12px">
+        <input type="password" id="mcKeyInput" placeholder="Mailchimp API Key (e.g. abc123-us14)" style="min-width:320px;background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:12px">
+        <button class="btn-sm btn-outline" onclick="document.getElementById('mcKeyInput').type=document.getElementById('mcKeyInput').type==='password'?'text':'password'">Show</button>
+      </div>
+      <button id="mcLoadBtn" onclick="saveMcKeyAndLoad()">Load Mailchimp Data</button>
+      <p style="color:var(--muted);font-size:10px;margin-top:8px">Key is stored locally in your browser. Never sent anywhere except Mailchimp API.</p>
+    </div>
+
+    <div id="mcContent" style="display:none">
+      <div class="filter-bar">
+        <h3>Filter Campaigns</h3>
+        <div class="filter-row">
+          <div class="filter-group"><label>Search</label><input type="text" id="mcSearch" placeholder="Campaign name..."></div>
+          <div class="filter-group"><label>Status</label>
+            <select id="mcStatusFilter">
+              <option value="">All</option>
+              <option value="sent" selected>Sent</option>
+              <option value="save">Draft</option>
+              <option value="schedule">Scheduled</option>
+            </select>
+          </div>
+          <div class="filter-group"><label>Show</label>
+            <select id="mcPerPage">
+              <option value="25">25 rows</option>
+              <option value="50" selected>50 rows</option>
+              <option value="100">100 rows</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm" id="mcApplyFilter">Apply</button>
+          <button class="btn-sm btn-outline" id="mcClearFilter">Clear</button>
+          <button class="btn-sm export-btn" id="mcExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Campaigns <span class="count" id="mcResultCount"></span></h2>
+        <div style="overflow-x:auto">
+          <table id="mcTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="title">Campaign Name</th>
+                <th data-col="subject">Subject</th>
+                <th data-col="send_time">Send Date</th>
+                <th data-col="emails_sent" class="num">Emails Sent</th>
+                <th data-col="unique_opens" class="num">Opens</th>
+                <th data-col="open_rate" class="num">Open Rate %</th>
+                <th data-col="unique_clicks" class="num">Clicks</th>
+                <th data-col="click_rate" class="num">Click Rate %</th>
+                <th data-col="unsubscribed" class="num">Unsubs</th>
+                <th data-col="status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="mcBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="mcPagInfo"></div>
+          <div class="pages" id="mcPagBtns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===================== CONFIG =====================
+    const CLIENT_ID = '356155587494-dfrre3kr66pae8mh22mppntd8fuf202f.apps.googleusercontent.com';
+    const SCOPES = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly';
+    const GSC_SITE = 'sc-domain:pricefox.gr';
+    const GA4_PROPERTY = '426748947';
+    const GSC_API = 'https://www.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(GSC_SITE) + '/searchAnalytics/query';
+    const GA4_API = 'https://analyticsdata.googleapis.com/v1beta/properties/' + GA4_PROPERTY + ':runReport';
+
+    let accessToken = null;
+    let tokenClient = null;
+
+    Chart.defaults.color = '#9ca3af';
+    Chart.defaults.borderColor = '#2a2d3a';
+    Chart.defaults.font.family = "'Inter',-apple-system,sans-serif";
+
+    let DATA = null;
+    let GA4 = null;
+    let charts = {};
+    let isComparing = false;
+    let qState = { page: 1, sortCol: 'clicks_cur', sortDir: 'desc', filtered: [] };
+    let coreState = { page: 1, sortCol: 'clicks_cur', sortDir: 'desc', filtered: [] };
+    let lhfState = { page: 1, sortCol: 'opportunity', sortDir: 'desc', filtered: [] };
+
+    // Core queries - stored in localStorage
+    const DEFAULT_CORE_QUERIES = [
+      'ασφαλεια αυτοκινητου', 'ασφαλεια μηχανησ', 'ασφαλεια σπιτιου', 'ασφαλεια υγειασ',
+      'ασφαλεια αυτοκινητου τιμεσ', 'ασφαλεια αυτοκινητου online',
+      'τιμεσ ρευματοσ ανα εταιρεια', 'συγκριση παροχων ρευματοσ', 'τιμολογια ρευματοσ',
+      'συγκριση τιμων ρευματοσ', 'φθηνο ρευμα', 'φυσικο αεριο τιμη κιλοβατωρασ',
+      'νυχτερινο ρευμα', 'μειωμενο ρευμα', 'νυχτερινο ρευμα ωρεσ',
+      'χειμερινο νυχτερινο ρευμα ωραριο', 'ποιο είναι το πιο φθηνο ρευμα',
+      'ποια εταιρια ρευματοσ συμφερει', 'ρευμα', 'τιμεσ ρευματοσ',
+      'τιμή κιλοβατώρασ ανα εταιρεια', 'ρευμα τιμεσ'
+    ];
+    function loadCoreQueries() {
+      const stored = localStorage.getItem('pricefox_core_queries');
+      if (stored) { try { return JSON.parse(stored); } catch(e) {} }
+      saveCoreQueries(DEFAULT_CORE_QUERIES);
+      return [...DEFAULT_CORE_QUERIES];
+    }
+    function saveCoreQueries(list) {
+      localStorage.setItem('pricefox_core_queries', JSON.stringify(list));
+    }
+    let coreQueries = loadCoreQueries();
+    let pState = { page: 1, sortCol: 'clicks_cur', sortDir: 'desc', filtered: [] };
+    let lpState = { page: 1, sortCol: 'sessions', sortDir: 'desc', filtered: [] };
+    let ceState = { page: 1, sortCol: 'pageViews', sortDir: 'desc', filtered: [] };
+    let geoState = { page: 1, sortCol: 'sessions', sortDir: 'desc', filtered: [] };
+    let GA4_SECTIONS = null;
+    let adsState = { page: 1, sortCol: 'cost', sortDir: 'desc', filtered: [] };
+    let ADS_DATA = null;
+    let ADS_SEARCH_TERMS = null;
+    let ADS_AD_GROUPS = null;
+    let stState = { page: 1, sortCol: 'clicks', sortDir: 'desc', filtered: [] };
+    let agState = { page: 1, sortCol: 'cost', sortDir: 'desc', filtered: [] };
+    let selectedCampaignST = '';
+    let selectedCampaignAG = '';
+
+    // ===================== MAILCHIMP CONFIG =====================
+    const MC_PROXY = 'https://corsproxy.io/?';
+    function getMcApiKey() { return localStorage.getItem('pricefox_mc_key') || ''; }
+    function getMcBaseUrl() { const k = getMcApiKey(); const dc = k.split('-').pop() || 'us14'; return 'https://' + dc + '.api.mailchimp.com/3.0'; }
+    let MC_DATA = null;
+    let mcState = { page: 1, sortCol: 'send_time', sortDir: 'desc', filtered: [] };
+    let mcLoaded = false;
+
+    function isAITraffic(sourceMedium) {
+      const sm = sourceMedium.toLowerCase();
+      if (/.*gpt.*|.*chatgpt.*|.*openai.*|.*neeva.*|.*writesonic.*|.*nimble.*|.*outrider.*|.*perplexity.*|.*google.*bard.*|.*bard.*|.*edgeservices.*|.*gemini.*google.*|.*claude.*|.*copilot.*/.test(sm)) return true;
+      return false;
+    }
+
+    // ===================== AUTH =====================
+    window.addEventListener('load', () => {
+      // Wait for GIS library to load
+      const checkGIS = setInterval(() => {
+        if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+          clearInterval(checkGIS);
+          initAuth();
+        }
+      }, 100);
+    });
+
+    function initAuth() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (response) => {
+          if (response.error) {
+            console.error('Auth error:', response);
+            return;
+          }
+          accessToken = response.access_token;
+          document.getElementById('authScreen').style.display = 'none';
+          showUserInfo();
+          initDates();
+          fetchData();
+        }
+      });
+
+      // Check if we have a stored token
+      const stored = sessionStorage.getItem('gsc_token');
+      if (stored) {
+        accessToken = stored;
+        // Verify token is still valid
+        fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + accessToken)
+          .then(r => {
+            if (r.ok) {
+              document.getElementById('authScreen').style.display = 'none';
+              showUserInfo();
+              initDates();
+              fetchData();
+            } else {
+              sessionStorage.removeItem('gsc_token');
+              accessToken = null;
+            }
+          });
+      }
+    }
+
+    function doSignIn() {
+      if (tokenClient) {
+        tokenClient.requestAccessToken();
+      }
+    }
+
+    function showUserInfo() {
+      sessionStorage.setItem('gsc_token', accessToken);
+      fetch('https://www.googleapis.com/oauth2/v1/userinfo?access_token=' + accessToken)
+        .then(r => r.json())
+        .then(user => {
+          const el = document.getElementById('userInfo');
+          el.style.display = 'flex';
+          el.innerHTML = '<img src="' + (user.picture || '') + '" alt="">' +
+            '<span>' + (user.email || '') + '</span>' +
+            '<button class="signout-btn" onclick="doSignOut()">Sign out</button>';
+        })
+        .catch(() => { });
+    }
+
+    function doSignOut() {
+      google.accounts.oauth2.revoke(accessToken, () => {
+        accessToken = null;
+        sessionStorage.removeItem('gsc_token');
+        document.getElementById('authScreen').style.display = 'flex';
+        document.getElementById('userInfo').style.display = 'none';
+      });
+    }
+
+    // ===================== API HELPERS =====================
+    function apiPost(url, body) {
+      return fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }).then(r => {
+        if (r.status === 401) {
+          // Token expired - re-auth
+          sessionStorage.removeItem('gsc_token');
+          accessToken = null;
+          document.getElementById('authScreen').style.display = 'flex';
+          throw new Error('Session expired. Please sign in again.');
+        }
+        if (!r.ok) throw new Error('API error: ' + r.status);
+        return r.json();
+      });
+    }
+
+    // ===================== GSC API CALLS =====================
+    function gscQuery(startDate, endDate, dimensions, rowLimit = 25000) {
+      const body = {
+        startDate,
+        endDate,
+        dimensions,
+        rowLimit,
+        dataState: 'all'
+      };
+      return apiPost(GSC_API, body);
+    }
+
+    // ===================== GA4 API CALLS =====================
+    const ORGANIC_FILTER = {
+      filter: { fieldName: 'sessionDefaultChannelGroup', stringFilter: { matchType: 'EXACT', value: 'Organic Search' } }
+    };
+
+    function ga4OrganicOverview(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        metrics: [
+          { name: 'sessions' }, { name: 'activeUsers' }, { name: 'engagedSessions' },
+          { name: 'engagementRate' }, { name: 'bounceRate' }, { name: 'averageSessionDuration' },
+          { name: 'screenPageViewsPerSession' }, { name: 'newUsers' }
+        ],
+        dimensionFilter: ORGANIC_FILTER
+      });
+    }
+
+    function ga4OrganicLandingPages(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'landingPage' }],
+        metrics: [
+          { name: 'sessions' }, { name: 'engagedSessions' },
+          { name: 'engagementRate' }, { name: 'averageSessionDuration' }
+        ],
+        dimensionFilter: ORGANIC_FILTER,
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit: '500'
+      });
+    }
+
+    function ga4OrganicContent(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'pagePath' }],
+        metrics: [
+          { name: 'screenPageViews' }, { name: 'sessions' },
+          { name: 'engagementRate' }, { name: 'userEngagementDuration' }
+        ],
+        dimensionFilter: ORGANIC_FILTER,
+        orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+        limit: '500'
+      });
+    }
+
+    function ga4DevicePerformance(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'deviceCategory' }],
+        metrics: [
+          { name: 'sessions' }, { name: 'activeUsers' }, { name: 'engagedSessions' },
+          { name: 'engagementRate' }, { name: 'conversions' }
+        ],
+        dimensionFilter: ORGANIC_FILTER
+      });
+    }
+
+    function ga4Geographic(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'country' }, { name: 'city' }],
+        metrics: [
+          { name: 'sessions' }, { name: 'engagedSessions' }, { name: 'conversions' }
+        ],
+        dimensionFilter: ORGANIC_FILTER,
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit: '500'
+      });
+    }
+
+    function ga4ChannelComparison(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+        metrics: [
+          { name: 'sessions' }, { name: 'activeUsers' }, { name: 'engagedSessions' },
+          { name: 'engagementRate' }, { name: 'conversions' }
+        ],
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit: '10000'
+      });
+    }
+
+    function ga4NewVsReturning(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'newVsReturning' }],
+        metrics: [
+          { name: 'sessions' }, { name: 'activeUsers' }, { name: 'engagedSessions' },
+          { name: 'engagementRate' }
+        ],
+        dimensionFilter: ORGANIC_FILTER
+      });
+    }
+
+    function ga4OrganicDaily(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'date' }],
+        metrics: [
+          { name: 'sessions' }, { name: 'activeUsers' }, { name: 'engagedSessions' }
+        ],
+        dimensionFilter: ORGANIC_FILTER,
+        orderBys: [{ dimension: { dimensionName: 'date' } }],
+        limit: '10000'
+      });
+    }
+
+    function ga4TotalQuery(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        metrics: [{ name: 'sessions' }]
+      });
+    }
+
+    function ga4DailyBySourceQuery(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'date' }, { name: 'sessionSourceMedium' }],
+        metrics: [{ name: 'sessions' }],
+        orderBys: [{ dimension: { dimensionName: 'date' } }],
+        limit: '100000'
+      });
+    }
+
+    // ===================== GOOGLE ADS VIA GA4 API =====================
+    function ga4AdsQuery(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'sessionGoogleAdsCampaignName' }],
+        metrics: [
+          { name: 'advertiserAdCost' },
+          { name: 'advertiserAdClicks' },
+          { name: 'advertiserAdImpressions' },
+          { name: 'sessions' },
+          { name: 'conversions' }
+        ],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'sessionGoogleAdsCampaignName',
+            stringFilter: { matchType: 'FULL_REGEXP', value: '.+' }
+          }
+        },
+        orderBys: [{ metric: { metricName: 'advertiserAdCost' }, desc: true }],
+        limit: '10000'
+      });
+    }
+
+    function ga4AdsSearchTermsQuery(startDate, endDate, campaignName) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'sessionGoogleAdsQuery' }],
+        metrics: [
+          { name: 'advertiserAdCost' },
+          { name: 'advertiserAdClicks' },
+          { name: 'advertiserAdImpressions' },
+          { name: 'sessions' },
+          { name: 'conversions' }
+        ],
+        dimensionFilter: {
+          andGroup: {
+            expressions: [
+              { filter: { fieldName: 'sessionGoogleAdsCampaignName', stringFilter: { matchType: 'EXACT', value: campaignName } } },
+              { filter: { fieldName: 'sessionGoogleAdsQuery', stringFilter: { matchType: 'FULL_REGEXP', value: '.+' } } }
+            ]
+          }
+        },
+        orderBys: [{ metric: { metricName: 'advertiserAdClicks' }, desc: true }],
+        limit: '10000'
+      });
+    }
+
+    function ga4AdsAdGroupsQuery(startDate, endDate, campaignName) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'sessionGoogleAdsAdGroupName' }],
+        metrics: [
+          { name: 'advertiserAdCost' },
+          { name: 'advertiserAdClicks' },
+          { name: 'advertiserAdImpressions' },
+          { name: 'sessions' },
+          { name: 'conversions' }
+        ],
+        dimensionFilter: {
+          andGroup: {
+            expressions: [
+              { filter: { fieldName: 'sessionGoogleAdsCampaignName', stringFilter: { matchType: 'EXACT', value: campaignName } } },
+              { filter: { fieldName: 'sessionGoogleAdsAdGroupName', stringFilter: { matchType: 'FULL_REGEXP', value: '.+' } } }
+            ]
+          }
+        },
+        orderBys: [{ metric: { metricName: 'advertiserAdCost' }, desc: true }],
+        limit: '10000'
+      });
+    }
+
+    function ga4TrendQuery(startDate, endDate, pagePath) {
+      const body = {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'date' }],
+        metrics: [{ name: 'sessions' }],
+        orderBys: [{ dimension: { dimensionName: 'date' } }],
+        limit: '10000'
+      };
+      if (pagePath) {
+        body.dimensionFilter = {
+          filter: {
+            fieldName: 'pagePath',
+            stringFilter: { matchType: 'EXACT', value: pagePath }
+          }
+        };
+      }
+      return apiPost(GA4_API, body);
+    }
+
+    // ===================== DATE HELPERS =====================
+    function fmt(d) { return d.toISOString().split('T')[0]; }
+    function initDates() {
+      const end = new Date(); end.setDate(end.getDate() - 3);
+      const start = new Date(end); start.setDate(start.getDate() - 9);
+      document.getElementById('startDate').value = fmt(start);
+      document.getElementById('endDate').value = fmt(end);
+    }
+    function getComparisonDates(s, e, mode) {
+      const start = new Date(s), end = new Date(e);
+      if (mode === 'yoy') {
+        const ps = new Date(start); ps.setFullYear(ps.getFullYear() - 1);
+        const pe = new Date(end); pe.setFullYear(pe.getFullYear() - 1);
+        return { prevStartDate: fmt(ps), prevEndDate: fmt(pe) };
+      } else {
+        const diff = (end - start) / 86400000 + 1;
+        const pe = new Date(start); pe.setDate(pe.getDate() - 1);
+        const ps = new Date(pe); ps.setDate(ps.getDate() - diff + 1);
+        return { prevStartDate: fmt(ps), prevEndDate: fmt(pe) };
+      }
+    }
+
+    // ===================== PRESETS =====================
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const days = parseInt(btn.dataset.days);
+        const end = new Date(); end.setDate(end.getDate() - 3);
+        const start = new Date(end); start.setDate(start.getDate() - days + 1);
+        document.getElementById('startDate').value = fmt(start);
+        document.getElementById('endDate').value = fmt(end);
+        fetchData();
+      });
+    });
+
+    // ===================== TABS =====================
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        // Show main KPIs only on Overview, Queries, Pages
+        const showKpis = ['overview', 'queries', 'pages'].includes(tab.dataset.tab);
+        document.getElementById('mainKpis').style.display = showKpis ? '' : 'none';
+        // Lazy-load Mailchimp data on first visit
+        if (tab.dataset.tab === 'mailchimp' && !mcLoaded && !MC_DATA) {
+          const savedKey = getMcApiKey();
+          if (savedKey) {
+            document.getElementById('mcKeyInput').value = savedKey;
+            fetchMailchimpData();
+          }
+        }
+      });
+    });
+
+    // ===================== FETCH DATA =====================
+    document.getElementById('loadBtn').addEventListener('click', fetchData);
+
+    async function fetchData() {
+      if (!accessToken) { doSignIn(); return; }
+
+      const loader = document.getElementById('loader');
+      const btn = document.getElementById('loadBtn');
+      const errEl = document.getElementById('errorMsg');
+      errEl.style.display = 'none';
+      loader.classList.add('active');
+      btn.disabled = true; btn.textContent = 'Loading...';
+
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const mode = document.getElementById('compareMode').value;
+      isComparing = mode !== 'none';
+
+      let prevStartDate = startDate, prevEndDate = endDate;
+      if (isComparing) {
+        const comp = getComparisonDates(startDate, endDate, mode);
+        prevStartDate = comp.prevStartDate;
+        prevEndDate = comp.prevEndDate;
+      }
+
+      const t0 = performance.now();
+
+      try {
+        // Build all API calls in parallel
+        const promises = [
+          /* 0 */ gscQuery(startDate, endDate, []),
+          /* 1 */ gscQuery(startDate, endDate, ['query']),
+          /* 2 */ gscQuery(startDate, endDate, ['page']),
+          /* 3 */ gscQuery(startDate, endDate, ['date']),
+          /* 4 */ ga4TotalQuery(startDate, endDate).catch(() => null),
+          /* 5 */ ga4DailyBySourceQuery(startDate, endDate).catch(() => null),
+          /* 6 */ ga4AdsQuery(startDate, endDate).catch(e => { console.error('GA4 Ads error:', e); return null; }),
+          /* 7 */ ga4OrganicOverview(startDate, endDate).catch(() => null),
+          /* 8 */ ga4OrganicLandingPages(startDate, endDate).catch(() => null),
+          /* 9 */ ga4OrganicContent(startDate, endDate).catch(() => null),
+          /* 10 */ ga4DevicePerformance(startDate, endDate).catch(() => null),
+          /* 11 */ ga4Geographic(startDate, endDate).catch(() => null),
+          /* 12 */ ga4ChannelComparison(startDate, endDate).catch(() => null),
+          /* 13 */ ga4NewVsReturning(startDate, endDate).catch(() => null),
+          /* 14 */ ga4OrganicDaily(startDate, endDate).catch(() => null)
+        ];
+
+        if (isComparing) {
+          promises.push(
+            /* 15 */ gscQuery(prevStartDate, prevEndDate, []),
+            /* 16 */ gscQuery(prevStartDate, prevEndDate, ['query']),
+            /* 17 */ gscQuery(prevStartDate, prevEndDate, ['page']),
+            /* 18 */ gscQuery(prevStartDate, prevEndDate, ['date']),
+            /* 19 */ ga4TotalQuery(prevStartDate, prevEndDate).catch(() => null),
+            /* 20 */ ga4DailyBySourceQuery(prevStartDate, prevEndDate).catch(() => null),
+            /* 21 */ ga4OrganicOverview(prevStartDate, prevEndDate).catch(() => null)
+          );
+        }
+
+        const results = await Promise.all(promises);
+
+        const totalsCur = results[0];
+        const queriesCur = results[1];
+        const pagesCur = results[2];
+        const dailyCur = results[3];
+        const ga4TotalsCur = results[4];
+        const ga4DailyBySrcCur = results[5];
+        const adsCur = results[6];
+        const ga4OrgOverviewCur = results[7];
+        const ga4LandingPagesCur = results[8];
+        const ga4ContentCur = results[9];
+        const ga4DeviceCur = results[10];
+        const ga4GeoCur = results[11];
+        const ga4ChannelCur = results[12];
+        const ga4NvRCur = results[13];
+        const ga4OrgDailyCur = results[14];
+
+        let totalsPrev = null, queriesPrev = null, pagesPrev = null, dailyPrev = null, ga4TotalsPrev = null, ga4DailyBySrcPrev = null, ga4OrgOverviewPrev = null;
+        if (isComparing) {
+          totalsPrev = results[15];
+          queriesPrev = results[16];
+          pagesPrev = results[17];
+          dailyPrev = results[18];
+          ga4TotalsPrev = results[19];
+          ga4DailyBySrcPrev = results[20];
+          ga4OrgOverviewPrev = results[21];
+        }
+
+        // Process GSC totals
+        const processTotals = (data) => {
+          if (!data || !data.rows || !data.rows.length) return { clicks: 0, impressions: 0, ctr: 0, position: 0 };
+          const r = data.rows[0];
+          return {
+            clicks: r.clicks || 0,
+            impressions: r.impressions || 0,
+            ctr: parseFloat(((r.ctr || 0) * 100).toFixed(2)),
+            position: parseFloat((r.position || 0).toFixed(1))
+          };
+        };
+
+        // Process GSC rows with dimension
+        const processRows = (data, dimKey) => {
+          if (!data || !data.rows) return [];
+          return data.rows.map(r => ({
+            [dimKey]: r.keys[0],
+            clicks: r.clicks || 0,
+            impressions: r.impressions || 0,
+            ctr: parseFloat(((r.ctr || 0) * 100).toFixed(2)),
+            position: parseFloat((r.position || 0).toFixed(1))
+          }));
+        };
+
+        // Merge current + prev for queries
+        const queriesCurRows = processRows(queriesCur, 'keyword');
+        const queriesPrevRows = isComparing ? processRows(queriesPrev, 'keyword') : [];
+        const prevQueryMap = {};
+        for (const r of queriesPrevRows) prevQueryMap[r.keyword] = r;
+
+        const allKeywords = queriesCurRows.map(r => ({
+          keyword: r.keyword,
+          clicks_cur: r.clicks,
+          impressions_cur: r.impressions,
+          ctr_cur: r.ctr,
+          position_cur: r.position,
+          clicks_prev: prevQueryMap[r.keyword] ? prevQueryMap[r.keyword].clicks : (isComparing ? 0 : null),
+          impressions_prev: prevQueryMap[r.keyword] ? prevQueryMap[r.keyword].impressions : (isComparing ? 0 : null),
+          ctr_prev: prevQueryMap[r.keyword] ? prevQueryMap[r.keyword].ctr : (isComparing ? 0 : null),
+          position_prev: prevQueryMap[r.keyword] ? prevQueryMap[r.keyword].position : (isComparing ? null : null)
+        }));
+
+        // Merge current + prev for pages
+        const pagesCurRows = processRows(pagesCur, 'page');
+        const pagesPrevRows = isComparing ? processRows(pagesPrev, 'page') : [];
+        const prevPageMap = {};
+        for (const r of pagesPrevRows) prevPageMap[r.page] = r;
+
+        // Process new GA4 sections
+        function parseOrgOverview(data) {
+          if (!data || !data.rows || !data.rows[0]) return null;
+          const m = data.rows[0].metricValues;
+          return {
+            sessions: parseInt(m[0].value) || 0,
+            users: parseInt(m[1].value) || 0,
+            engagedSessions: parseInt(m[2].value) || 0,
+            engagementRate: parseFloat(m[3].value) || 0,
+            bounceRate: parseFloat(m[4].value) || 0,
+            avgSessionDuration: parseFloat(m[5].value) || 0,
+            pagesPerSession: parseFloat(m[6].value) || 0,
+            newUsers: parseInt(m[7].value) || 0
+          };
+        }
+        function parseGA4Rows(data, dims, metricNames) {
+          if (!data || !data.rows) return [];
+          return data.rows.map(r => {
+            const obj = {};
+            dims.forEach((d, i) => { obj[d] = r.dimensionValues[i].value; });
+            metricNames.forEach((m, i) => {
+              obj[m] = m.includes('Rate') ? parseFloat(r.metricValues[i].value) || 0
+                : m.includes('Duration') || m.includes('Time') ? parseFloat(r.metricValues[i].value) || 0
+                : parseInt(r.metricValues[i].value) || 0;
+            });
+            return obj;
+          });
+        }
+        function parseOrgDaily(data) {
+          if (!data || !data.rows) return [];
+          return data.rows.map(r => {
+            const raw = r.dimensionValues[0].value;
+            const dateStr = raw.length === 8 ? raw.substring(0, 4) + '-' + raw.substring(4, 6) + '-' + raw.substring(6, 8) : raw;
+            return {
+              date: dateStr,
+              sessions: parseInt(r.metricValues[0].value) || 0,
+              users: parseInt(r.metricValues[1].value) || 0,
+              engagedSessions: parseInt(r.metricValues[2].value) || 0
+            };
+          }).sort((a, b) => a.date.localeCompare(b.date));
+        }
+
+        GA4_SECTIONS = {
+          orgOverview: parseOrgOverview(ga4OrgOverviewCur),
+          orgOverviewPrev: isComparing ? parseOrgOverview(ga4OrgOverviewPrev) : null,
+          landingPages: parseGA4Rows(ga4LandingPagesCur, ['landingPage'], ['sessions', 'engagedSessions', 'engagementRate', 'avgDuration']),
+          content: parseGA4Rows(ga4ContentCur, ['pagePath'], ['pageViews', 'sessions', 'engagementRate', 'engagementTime']),
+          devices: parseGA4Rows(ga4DeviceCur, ['deviceCategory'], ['sessions', 'users', 'engagedSessions', 'engagementRate', 'conversions']),
+          geo: parseGA4Rows(ga4GeoCur, ['country', 'city'], ['sessions', 'engagedSessions', 'conversions']),
+          channels: parseGA4Rows(ga4ChannelCur, ['channel'], ['sessions', 'users', 'engagedSessions', 'engagementRate', 'conversions']),
+          nvr: parseGA4Rows(ga4NvRCur, ['type'], ['sessions', 'users', 'engagedSessions', 'engagementRate']),
+          orgDaily: parseOrgDaily(ga4OrgDailyCur)
+        };
+        // Fix channel dimension name
+        if (ga4ChannelCur && ga4ChannelCur.rows) {
+          GA4_SECTIONS.channels = ga4ChannelCur.rows.map(r => ({
+            channel: r.dimensionValues[0].value,
+            sessions: parseInt(r.metricValues[0].value) || 0,
+            users: parseInt(r.metricValues[1].value) || 0,
+            engagedSessions: parseInt(r.metricValues[2].value) || 0,
+            engagementRate: parseFloat(r.metricValues[3].value) || 0,
+            conversions: parseInt(r.metricValues[4].value) || 0
+          }));
+        }
+        // Fix nvr dimension name
+        if (ga4NvRCur && ga4NvRCur.rows) {
+          GA4_SECTIONS.nvr = ga4NvRCur.rows.map(r => ({
+            type: r.dimensionValues[0].value,
+            sessions: parseInt(r.metricValues[0].value) || 0,
+            users: parseInt(r.metricValues[1].value) || 0,
+            engagedSessions: parseInt(r.metricValues[2].value) || 0,
+            engagementRate: parseFloat(r.metricValues[3].value) || 0
+          }));
+        }
+
+        const allPages = pagesCurRows.map(r => {
+          let path; try { path = new URL(r.page).pathname; } catch (e) { path = r.page; }
+          return {
+            page: r.page,
+            clicks_cur: r.clicks,
+            impressions_cur: r.impressions,
+            ctr_cur: r.ctr,
+            position_cur: r.position,
+            clicks_prev: prevPageMap[r.page] ? prevPageMap[r.page].clicks : (isComparing ? 0 : null),
+            impressions_prev: prevPageMap[r.page] ? prevPageMap[r.page].impressions : (isComparing ? 0 : null),
+            ctr_prev: prevPageMap[r.page] ? prevPageMap[r.page].ctr : (isComparing ? 0 : null),
+            position_prev: prevPageMap[r.page] ? prevPageMap[r.page].position : (isComparing ? null : null)
+          };
+        });
+
+        // Process daily data
+        const processDaily = (data) => {
+          if (!data || !data.rows) return [];
+          return data.rows.map(r => ({
+            date: r.keys[0],
+            clicks: r.clicks || 0,
+            impressions: r.impressions || 0,
+            ctr: parseFloat(((r.ctr || 0) * 100).toFixed(2)),
+            position: parseFloat((r.position || 0).toFixed(1))
+          })).sort((a, b) => a.date.localeCompare(b.date));
+        };
+
+        // GA4 totals
+        const ga4SessionsCur = (ga4TotalsCur && ga4TotalsCur.rows && ga4TotalsCur.rows[0])
+          ? parseInt(ga4TotalsCur.rows[0].metricValues[0].value) || 0 : 0;
+        const ga4SessionsPrev = (ga4TotalsPrev && ga4TotalsPrev.rows && ga4TotalsPrev.rows[0])
+          ? parseInt(ga4TotalsPrev.rows[0].metricValues[0].value) || 0 : 0;
+
+        // Process daily AI sessions
+        function processDailyBySource(data) {
+          if (!data || !data.rows) return [];
+          const dayMap = {};
+          for (const r of data.rows) {
+            const rawDate = r.dimensionValues[0].value;
+            const dateStr = rawDate.length === 8 ? rawDate.substring(0, 4) + '-' + rawDate.substring(4, 6) + '-' + rawDate.substring(6, 8) : rawDate;
+            const srcMed = r.dimensionValues[1].value;
+            const sessions = parseInt(r.metricValues[0].value) || 0;
+            if (!dayMap[dateStr]) dayMap[dateStr] = { total: 0, ai: 0 };
+            dayMap[dateStr].total += sessions;
+            if (isAITraffic(srcMed)) dayMap[dateStr].ai += sessions;
+          }
+          return Object.keys(dayMap).sort().map(d => ({ date: d, total: dayMap[d].total, ai: dayMap[d].ai }));
+        }
+        const ga4DailyCur = processDailyBySource(ga4DailyBySrcCur);
+        const ga4DailyPrev = isComparing ? processDailyBySource(ga4DailyBySrcPrev) : [];
+
+        // AI totals
+        const aiSessionsCur = ga4DailyCur.reduce((s, d) => s + d.ai, 0);
+        const aiSessionsPrev = ga4DailyPrev.reduce((s, d) => s + d.ai, 0);
+
+        // AI source totals for AI traffic table
+        const aiSrcMap = {};
+        if (ga4DailyBySrcCur && ga4DailyBySrcCur.rows) {
+          for (const r of ga4DailyBySrcCur.rows) {
+            const srcMed = r.dimensionValues[1].value;
+            const sessions = parseInt(r.metricValues[0].value) || 0;
+            if (isAITraffic(srcMed)) {
+              aiSrcMap[srcMed] = (aiSrcMap[srcMed] || 0) + sessions;
+            }
+          }
+        }
+        const aiSourceTotals = Object.entries(aiSrcMap).map(([source, sessions]) => ({ source, sessions })).sort((a, b) => b.sessions - a.sessions);
+
+        DATA = {
+          totals_cur: processTotals(totalsCur),
+          totals_prev: isComparing ? processTotals(totalsPrev) : null,
+          daily_cur: processDaily(dailyCur),
+          daily_prev: isComparing ? processDaily(dailyPrev) : [],
+          all_keywords: allKeywords,
+          all_pages: allPages,
+          ga4_daily_cur: ga4DailyCur,
+          ga4_daily_prev: ga4DailyPrev,
+          ai_sessions_cur: aiSessionsCur,
+          ai_sessions_prev: isComparing ? aiSessionsPrev : null,
+          ai_source_totals: aiSourceTotals
+        };
+
+        GA4 = {
+          totals: { sessions_cur: ga4SessionsCur, sessions_prev: isComparing ? ga4SessionsPrev : null }
+        };
+
+        const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+        console.log('All data loaded in ' + elapsed + 's');
+
+        updateCompareUI();
+
+        // Process Google Ads data from GA4 API
+        function processAdsData(data) {
+          if (!data || !data.rows) return [];
+          return data.rows.map(r => {
+            const name = r.dimensionValues[0].value || '(not set)';
+            const cost = parseFloat(r.metricValues[0].value) || 0;
+            const clicks = parseInt(r.metricValues[1].value) || 0;
+            const impressions = parseInt(r.metricValues[2].value) || 0;
+            const sessions = parseInt(r.metricValues[3].value) || 0;
+            const conversions = parseFloat(r.metricValues[4].value) || 0;
+            return {
+              name,
+              status: 'ACTIVE',
+              cost: parseFloat(cost.toFixed(2)),
+              clicks,
+              impressions,
+              sessions,
+              ctr: impressions > 0 ? parseFloat((clicks / impressions * 100).toFixed(2)) : 0,
+              cpc: clicks > 0 ? parseFloat((cost / clicks).toFixed(2)) : 0,
+              conversions: parseFloat(conversions.toFixed(1))
+            };
+          }).filter(r => r.name !== '(not set)');
+        }
+        ADS_DATA = processAdsData(adsCur);
+
+        renderAll();
+      } catch (e) {
+        errEl.textContent = 'Error: ' + e.message;
+        errEl.style.display = 'block';
+      } finally {
+        loader.classList.remove('active');
+        btn.disabled = false; btn.textContent = 'Load Data';
+      }
+    }
+
+    function updateCompareUI() {
+      document.querySelectorAll('.prev-col').forEach(el => {
+        el.style.display = isComparing ? '' : 'none';
+      });
+    }
+
+    // ===================== HELPERS =====================
+    function chgHtml(cur, prev, invert) {
+      if (!isComparing || prev === null || prev === undefined) return '';
+      if (prev === 0 && cur === 0) return '<span class="neutral">0%</span>';
+      if (prev === 0) return '<span class="new-tag">NEW</span>';
+      const pct = ((cur - prev) / Math.abs(prev) * 100).toFixed(1);
+      const good = invert ? pct < 0 : pct > 0;
+      const cls = pct == 0 ? 'neutral' : (good ? 'up' : 'down');
+      return '<span class="' + cls + '">' + (pct > 0 ? '+' : '') + pct + '%</span>';
+    }
+    function shortUrl(u) {
+      try { const p = new URL(u).pathname; try { return decodeURIComponent(p); } catch (e) { return p; } } catch (e) { return u; }
+    }
+    function escHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function matchFilter(value, search, matchType) {
+      if (!search) return true;
+      const v = value.toLowerCase(), s = search.toLowerCase();
+      switch (matchType) {
+        case 'contains': return v.includes(s);
+        case 'exact': return v === s;
+        case 'regex': try { return new RegExp(search, 'i').test(value); } catch (e) { return false; }
+        case 'not_contains': return !v.includes(s);
+        case 'not_regex': try { return !new RegExp(search, 'i').test(value); } catch (e) { return true; }
+        default: return true;
+      }
+    }
+
+    // ===================== RENDER ALL =====================
+    function renderAll() {
+      if (!DATA) return;
+      renderKPIs();
+      renderDailyCharts();
+      renderOverviewCharts();
+      renderGA4Overview();
+      renderGA4OrgDailyChart();
+      renderGA4LandingPages();
+      renderGA4Content();
+      renderGA4Devices();
+      renderGA4Geo();
+      renderGA4Channels();
+      renderGA4NvR();
+      renderAiDashboard();
+      applyQueryFilter();
+      renderCoreTags();
+      applyCoreFilter();
+      applyLHFFilter();
+      applyPageFilter();
+      if (ADS_DATA) { applyAdsFilter(); populateCampaignSelects(); }
+      document.getElementById('qCount').textContent = '(' + DATA.all_keywords.length.toLocaleString() + ')';
+      document.getElementById('pCount').textContent = '(' + DATA.all_pages.length.toLocaleString() + ')';
+      const orgSess = GA4_SECTIONS && GA4_SECTIONS.orgOverview ? GA4_SECTIONS.orgOverview.sessions : 0;
+      document.getElementById('gCount').textContent = '(' + orgSess.toLocaleString() + ')';
+      document.getElementById('adsCount').textContent = ADS_DATA ? '(' + ADS_DATA.length + ')' : '';
+    }
+
+    // ===================== KPIs =====================
+    function renderKPIs() {
+      const tc = DATA.totals_cur, tp = DATA.totals_prev;
+      document.getElementById('kpiClicks').textContent = tc.clicks.toLocaleString();
+      document.getElementById('kpiImpr').textContent = tc.impressions.toLocaleString();
+      document.getElementById('kpiCtr').textContent = tc.ctr + '%';
+      document.getElementById('kpiPos').textContent = tc.position;
+
+      const ga4t = GA4 ? GA4.totals : null;
+      if (ga4t) {
+        document.getElementById('kpiSessions').textContent = (ga4t.sessions_cur || 0).toLocaleString();
+      } else {
+        document.getElementById('kpiSessions').textContent = '—';
+      }
+
+      if (isComparing && tp) {
+        document.getElementById('kpiClicksChg').innerHTML = chgHtml(tc.clicks, tp.clicks) + ' vs prev';
+        document.getElementById('kpiClicksPrev').textContent = 'Prev: ' + tp.clicks.toLocaleString();
+        document.getElementById('kpiImprChg').innerHTML = chgHtml(tc.impressions, tp.impressions) + ' vs prev';
+        document.getElementById('kpiImprPrev').textContent = 'Prev: ' + tp.impressions.toLocaleString();
+        document.getElementById('kpiCtrChg').innerHTML = chgHtml(tc.ctr, tp.ctr) + ' vs prev';
+        document.getElementById('kpiCtrPrev').textContent = 'Prev: ' + tp.ctr + '%';
+        document.getElementById('kpiPosChg').innerHTML = chgHtml(tc.position, tp.position, true) + ' vs prev';
+        document.getElementById('kpiPosPrev').textContent = 'Prev: ' + tp.position;
+        if (ga4t) {
+          document.getElementById('kpiSessionsChg').innerHTML = chgHtml(ga4t.sessions_cur, ga4t.sessions_prev) + ' vs prev';
+          document.getElementById('kpiSessionsPrev').textContent = 'Prev: ' + (ga4t.sessions_prev || 0).toLocaleString();
+        }
+      } else {
+        ['kpiClicksChg', 'kpiClicksPrev', 'kpiImprChg', 'kpiImprPrev', 'kpiCtrChg', 'kpiCtrPrev', 'kpiPosChg', 'kpiPosPrev', 'kpiSessionsChg', 'kpiSessionsPrev'].forEach(id => {
+          document.getElementById(id).textContent = '';
+        });
+      }
+    }
+
+    // ===================== DAILY CHARTS =====================
+    function mkChart(id, curData, prevData, key, label, color, reverse) {
+      if (charts[id]) charts[id].destroy();
+      const labels = curData.map(d => d.date);
+      const datasets = [
+        { label: 'Current', data: curData.map(d => d[key]), borderColor: color, backgroundColor: color + '22', fill: true, tension: .3, pointRadius: 3, pointBackgroundColor: color, borderWidth: 2 }
+      ];
+      if (isComparing && prevData.length) {
+        datasets.push({ label: 'Previous', data: prevData.map(d => d[key]), borderColor: '#6b7280', borderDash: [6, 4], tension: .3, pointRadius: 2, pointBackgroundColor: '#6b7280', borderWidth: 1.5 });
+      }
+      charts[id] = new Chart(document.getElementById(id), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { size: 10 } } } },
+          scales: { y: { title: { display: true, text: label }, reverse: !!reverse, grid: { color: '#2a2d3a' } } }
+        }
+      });
+    }
+    function renderDailyCharts() {
+      const dc = DATA.daily_cur.sort((a, b) => a.date.localeCompare(b.date));
+      const dp = (DATA.daily_prev || []).sort((a, b) => a.date.localeCompare(b.date));
+      mkChart('clicksChart', dc, dp, 'clicks', 'Clicks', '#6366f1');
+      mkChart('imprChart', dc, dp, 'impressions', 'Impressions', '#22d3ee');
+      mkChart('ctrChart', dc, dp, 'ctr', 'CTR %', '#22c55e');
+      mkChart('posChart', dc, dp, 'position', 'Position', '#f97316', true);
+    }
+
+    // ===================== OVERVIEW CHARTS =====================
+    function renderOverviewCharts() {
+      const topKw = [...DATA.all_keywords].sort((a, b) => b.clicks_cur - a.clicks_cur).slice(0, 15);
+      if (charts.kwOverviewChart) charts.kwOverviewChart.destroy();
+      const kwDatasets = [{ label: 'Current', data: topKw.map(r => r.clicks_cur), backgroundColor: '#6366f1', borderRadius: 4 }];
+      if (isComparing) kwDatasets.push({ label: 'Previous', data: topKw.map(r => r.clicks_prev), backgroundColor: '#4b5563', borderRadius: 4 });
+      charts.kwOverviewChart = new Chart(document.getElementById('kwOverviewChart'), {
+        type: 'bar',
+        data: { labels: topKw.map(r => r.keyword.length > 28 ? r.keyword.substring(0, 25) + '...' : r.keyword), datasets: kwDatasets },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } } }
+      });
+
+      const topPg = [...DATA.all_pages].sort((a, b) => b.clicks_cur - a.clicks_cur).slice(0, 15);
+      if (charts.pgOverviewChart) charts.pgOverviewChart.destroy();
+      const pgDatasets = [{ label: 'Current', data: topPg.map(r => r.clicks_cur), backgroundColor: '#22d3ee', borderRadius: 4 }];
+      if (isComparing) pgDatasets.push({ label: 'Previous', data: topPg.map(r => r.clicks_prev), backgroundColor: '#4b5563', borderRadius: 4 });
+      charts.pgOverviewChart = new Chart(document.getElementById('pgOverviewChart'), {
+        type: 'bar',
+        data: { labels: topPg.map(r => { const p = shortUrl(r.page); return p.length > 35 ? p.substring(0, 32) + '...' : p; }), datasets: pgDatasets },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } } }
+      });
+    }
+
+    // ===================== SORTING =====================
+    function getSortValue(row, col) {
+      if (col === 'rank') return 0;
+      if (col === 'clicks_chg') {
+        if (!row.clicks_prev) return row.clicks_cur > 0 ? 99999 : 0;
+        return (row.clicks_cur - row.clicks_prev) / row.clicks_prev;
+      }
+      return row[col] ?? 0;
+    }
+    function sortData(data, col, dir) {
+      return [...data].sort((a, b) => {
+        const va = getSortValue(a, col), vb = getSortValue(b, col);
+        if (col === 'keyword' || col === 'page' || col === 'pagePath' || col === 'sourceMedium') return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        if (col === 'position_cur' || col === 'position_prev') return dir === 'asc' ? (va || 99) - (vb || 99) : (vb || 99) - (va || 99);
+        return dir === 'asc' ? va - vb : vb - va;
+      });
+    }
+
+    // ===================== QUERIES TABLE =====================
+    function applyQueryFilter() {
+      if (!DATA) return;
+      const search = document.getElementById('qSearch').value;
+      const matchType = document.getElementById('qMatchType').value;
+      const minClicks = parseInt(document.getElementById('qMinClicks').value) || 0;
+      const maxPos = parseFloat(document.getElementById('qMaxPos').value) || 999;
+      qState.filtered = DATA.all_keywords.filter(r => {
+        if (!matchFilter(r.keyword, search, matchType)) return false;
+        if (r.clicks_cur < minClicks) return false;
+        if (r.position_cur > maxPos) return false;
+        return true;
+      });
+      qState.page = 1;
+      renderFilterTags('q', search, matchType, minClicks, maxPos);
+      renderQueryTable();
+    }
+
+    function renderQueryTable() {
+      const sorted = sortData(qState.filtered, qState.sortCol, qState.sortDir);
+      const perPage = parseInt(document.getElementById('qPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (qState.page > pages) qState.page = pages || 1;
+      const start = perPage > 0 ? (qState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+
+      document.getElementById('qResultCount').textContent = '(' + total.toLocaleString() + ' results)';
+      document.querySelectorAll('#qTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === qState.sortCol) th.classList.add('sorted-' + qState.sortDir);
+      });
+
+      document.getElementById('qBody').innerHTML = slice.map((r, i) =>
+        '<tr>' +
+        '<td>' + (start + i + 1) + '</td>' +
+        '<td class="kw-cell" title="' + escHtml(r.keyword) + '">' + escHtml(r.keyword) + '</td>' +
+        '<td><button class="btn-trend" data-dim="query" data-val="' + escHtml(r.keyword) + '">3m trend</button></td>' +
+        '<td class="num"><strong>' + r.clicks_cur.toLocaleString() + '</strong></td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.clicks_prev ?? '—') + '</td><td class="num prev-col">' + chgHtml(r.clicks_cur, r.clicks_prev) + '</td>' : '') +
+        '<td class="num">' + r.impressions_cur.toLocaleString() + '</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.impressions_prev ?? '—') + '</td>' : '') +
+        '<td class="num">' + r.ctr_cur + '%</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.ctr_prev ?? '—') + '%</td>' : '') +
+        '<td class="num">' + r.position_cur + '</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.position_prev ?? '—') + '</td>' : '') +
+        '</tr>'
+      ).join('');
+
+      renderPagination('q', qState, total, perPage, pages, renderQueryTable);
+    }
+
+    // ===================== CORE QUERIES =====================
+    function renderCoreTags() {
+      const wrap = document.getElementById('coreTagsWrap');
+      wrap.innerHTML = coreQueries.map(q =>
+        '<span class="core-tag">' + escHtml(q) + ' <span class="remove" data-core="' + escHtml(q) + '">&times;</span></span>'
+      ).join('');
+      document.getElementById('coreCount').textContent = coreQueries.length + ' core queries defined';
+      wrap.querySelectorAll('.remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          removeCoreQuery(btn.dataset.core);
+        });
+      });
+    }
+    function addCoreQuery(q) {
+      q = q.trim().toLowerCase();
+      if (!q || coreQueries.includes(q)) return;
+      coreQueries.push(q);
+      saveCoreQueries(coreQueries);
+      renderCoreTags();
+      renderCoreTable();
+    }
+    function removeCoreQuery(q) {
+      coreQueries = coreQueries.filter(c => c !== q);
+      saveCoreQueries(coreQueries);
+      renderCoreTags();
+      renderCoreTable();
+    }
+    function applyCoreFilter() {
+      if (!DATA) return;
+      const search = document.getElementById('coreSearch').value.toLowerCase();
+      const coreSet = new Set(coreQueries.map(q => q.toLowerCase()));
+      coreState.filtered = DATA.all_keywords.filter(r => {
+        if (!coreSet.has(r.keyword.toLowerCase())) return false;
+        if (search && !r.keyword.toLowerCase().includes(search)) return false;
+        return true;
+      });
+      // Add missing core queries with zero data
+      const foundSet = new Set(coreState.filtered.map(r => r.keyword.toLowerCase()));
+      for (const q of coreQueries) {
+        if (!foundSet.has(q.toLowerCase())) {
+          coreState.filtered.push({
+            keyword: q, clicks_cur: 0, impressions_cur: 0, ctr_cur: 0, position_cur: null,
+            clicks_prev: null, impressions_prev: null, ctr_prev: null, position_prev: null
+          });
+        }
+      }
+      coreState.page = 1;
+      renderCoreTable();
+      // KPIs
+      const withData = coreState.filtered.filter(r => r.clicks_cur > 0 || r.impressions_cur > 0);
+      const totalClicks = withData.reduce((s, r) => s + r.clicks_cur, 0);
+      const totalImpr = withData.reduce((s, r) => s + r.impressions_cur, 0);
+      const avgCtr = totalImpr > 0 ? (totalClicks / totalImpr * 100).toFixed(2) : '0';
+      const posItems = withData.filter(r => r.position_cur && r.position_cur > 0);
+      const avgPos = posItems.length > 0 ? (posItems.reduce((s, r) => s + r.position_cur, 0) / posItems.length).toFixed(1) : '—';
+      document.getElementById('coreKpiClicks').textContent = totalClicks.toLocaleString();
+      document.getElementById('coreKpiImpr').textContent = totalImpr.toLocaleString();
+      document.getElementById('coreKpiCtr').textContent = avgCtr + '%';
+      document.getElementById('coreKpiPos').textContent = avgPos;
+    }
+    function renderCoreTable() {
+      const sorted = sortData(coreState.filtered, coreState.sortCol, coreState.sortDir);
+      const perPage = parseInt(document.getElementById('corePerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (coreState.page > pages) coreState.page = pages || 1;
+      const start = perPage > 0 ? (coreState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+
+      document.getElementById('coreResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#coreTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === coreState.sortCol) th.classList.add('sorted-' + coreState.sortDir);
+      });
+
+      document.getElementById('coreBody').innerHTML = slice.map((r, i) =>
+        '<tr>' +
+        '<td>' + (start + i + 1) + '</td>' +
+        '<td class="kw-cell" title="' + escHtml(r.keyword) + '">' + escHtml(r.keyword) + '</td>' +
+        '<td><button class="btn-trend" data-dim="query" data-val="' + escHtml(r.keyword) + '">3m trend</button></td>' +
+        '<td class="num"><strong>' + r.clicks_cur.toLocaleString() + '</strong></td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.clicks_prev ?? '—') + '</td><td class="num prev-col">' + chgHtml(r.clicks_cur, r.clicks_prev) + '</td>' : '') +
+        '<td class="num">' + r.impressions_cur.toLocaleString() + '</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.impressions_prev ?? '—') + '</td>' : '') +
+        '<td class="num">' + r.ctr_cur + '%</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.ctr_prev ?? '—') + '%</td>' : '') +
+        '<td class="num">' + (r.position_cur ?? '—') + '</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.position_prev ?? '—') + '</td>' : '') +
+        '<td><button class="remove-core-btn" data-core="' + escHtml(r.keyword) + '">✕</button></td>' +
+        '</tr>'
+      ).join('');
+
+      renderPagination('core', coreState, total, perPage, pages, renderCoreTable);
+
+      // Wire remove buttons
+      document.getElementById('coreBody').querySelectorAll('.remove-core-btn').forEach(btn => {
+        btn.addEventListener('click', () => removeCoreQuery(btn.dataset.core));
+      });
+    }
+
+    // ===================== LOW HANGING FRUITS =====================
+    function applyLHFFilter() {
+      if (!DATA) return;
+      const minPos = parseFloat(document.getElementById('lhfMinPos').value) || 4;
+      const maxPos = parseFloat(document.getElementById('lhfMaxPos').value) || 20;
+      const minImpr = parseInt(document.getElementById('lhfMinImpr').value) || 100;
+      const search = document.getElementById('lhfSearch').value.toLowerCase();
+
+      lhfState.filtered = DATA.all_keywords.filter(r => {
+        if (r.position_cur < minPos || r.position_cur > maxPos) return false;
+        if (r.impressions_cur < minImpr) return false;
+        if (search && !r.keyword.toLowerCase().includes(search)) return false;
+        return true;
+      }).map(r => ({
+        ...r,
+        // Opportunity score: high impressions + close to page 1 = high opportunity
+        opportunity: Math.round(r.impressions_cur * (1 - (r.position_cur - 1) / 20) * (1 - r.ctr_cur / 100))
+      }));
+      lhfState.page = 1;
+      renderLHFTable();
+    }
+    function renderLHFTable() {
+      const sorted = sortData(lhfState.filtered, lhfState.sortCol, lhfState.sortDir);
+      const perPage = parseInt(document.getElementById('lhfPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (lhfState.page > pages) lhfState.page = pages || 1;
+      const start = perPage > 0 ? (lhfState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+
+      const maxOpp = Math.max(...lhfState.filtered.map(r => r.opportunity), 1);
+
+      document.getElementById('lhfResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#lhfTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === lhfState.sortCol) th.classList.add('sorted-' + lhfState.sortDir);
+      });
+
+      document.getElementById('lhfBody').innerHTML = slice.map((r, i) => {
+        const barW = Math.max(4, Math.round(r.opportunity / maxOpp * 80));
+        return '<tr>' +
+          '<td>' + (start + i + 1) + '</td>' +
+          '<td class="kw-cell" title="' + escHtml(r.keyword) + '">' + escHtml(r.keyword) + '</td>' +
+          '<td><button class="btn-trend" data-dim="query" data-val="' + escHtml(r.keyword) + '">3m trend</button></td>' +
+          '<td class="num"><strong>' + r.clicks_cur.toLocaleString() + '</strong></td>' +
+          '<td class="num">' + r.impressions_cur.toLocaleString() + '</td>' +
+          '<td class="num">' + r.ctr_cur + '%</td>' +
+          '<td class="num" style="color:var(--orange)">' + r.position_cur + '</td>' +
+          '<td class="num"><span class="opportunity-bar" style="width:' + barW + 'px"></span>' + r.opportunity.toLocaleString() + '</td>' +
+          '</tr>';
+      }).join('');
+
+      renderPagination('lhf', lhfState, total, perPage, pages, renderLHFTable);
+    }
+
+    // ===================== PAGES TABLE =====================
+    function applyPageFilter() {
+      if (!DATA) return;
+      const search = document.getElementById('pSearch').value;
+      const matchType = document.getElementById('pMatchType').value;
+      const minClicks = parseInt(document.getElementById('pMinClicks').value) || 0;
+      const maxPos = parseFloat(document.getElementById('pMaxPos').value) || 999;
+      pState.filtered = DATA.all_pages.filter(r => {
+        let decodedPage; try { decodedPage = decodeURIComponent(r.page); } catch (e) { decodedPage = r.page; }
+        if (!matchFilter(decodedPage, search, matchType)) return false;
+        if (r.clicks_cur < minClicks) return false;
+        if (r.position_cur > maxPos) return false;
+        return true;
+      });
+      pState.page = 1;
+      renderFilterTags('p', search, matchType, minClicks, maxPos);
+      renderPageTable();
+    }
+
+    function renderPageTable() {
+      const sorted = sortData(pState.filtered, pState.sortCol, pState.sortDir);
+      const perPage = parseInt(document.getElementById('pPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (pState.page > pages) pState.page = pages || 1;
+      const start = perPage > 0 ? (pState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+
+      document.getElementById('pResultCount').textContent = '(' + total.toLocaleString() + ' results)';
+      document.querySelectorAll('#pTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === pState.sortCol) th.classList.add('sorted-' + pState.sortDir);
+      });
+
+      document.getElementById('pBody').innerHTML = slice.map((r, i) =>
+        '<tr>' +
+        '<td>' + (start + i + 1) + '</td>' +
+        '<td class="page-url" title="' + escHtml(r.page) + '">' + escHtml(shortUrl(r.page)) + '</td>' +
+        '<td><button class="btn-trend" data-dim="page" data-val="' + escHtml(r.page) + '">3m trend</button></td>' +
+        '<td class="num"><strong>' + r.clicks_cur.toLocaleString() + '</strong></td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.clicks_prev ?? '—') + '</td><td class="num prev-col">' + chgHtml(r.clicks_cur, r.clicks_prev) + '</td>' : '') +
+        '<td class="num">' + r.impressions_cur.toLocaleString() + '</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.impressions_prev ?? '—') + '</td>' : '') +
+        '<td class="num">' + r.ctr_cur + '%</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.ctr_prev ?? '—') + '%</td>' : '') +
+        '<td class="num">' + r.position_cur + '</td>' +
+        (isComparing ? '<td class="num prev-col">' + (r.position_prev ?? '—') + '</td>' : '') +
+        '</tr>'
+      ).join('');
+
+      renderPagination('p', pState, total, perPage, pages, renderPageTable);
+    }
+
+    // ===================== PAGINATION =====================
+    function renderPagination(prefix, state, total, perPage, pages, renderFn) {
+      const infoEl = document.getElementById(prefix + 'PagInfo');
+      const btnsEl = document.getElementById(prefix + 'PagBtns');
+      if (perPage === 0 || pages <= 1) { infoEl.textContent = total.toLocaleString() + ' results'; btnsEl.innerHTML = ''; return; }
+      const start = (state.page - 1) * perPage + 1;
+      const end = Math.min(state.page * perPage, total);
+      infoEl.textContent = start + '–' + end + ' of ' + total.toLocaleString();
+      let html = '';
+      if (state.page > 1) html += '<button class="btn-sm btn-outline" data-p="' + (state.page - 1) + '">\u2190</button>';
+      const range = [];
+      for (let i = Math.max(1, state.page - 2); i <= Math.min(pages, state.page + 2); i++) range.push(i);
+      if (range[0] > 1) html += '<button class="btn-sm btn-outline" data-p="1">1</button><span style="color:var(--muted)">...</span>';
+      for (const p of range) html += '<button class="btn-sm ' + (p === state.page ? '' : 'btn-outline') + '" data-p="' + p + '">' + p + '</button>';
+      if (range[range.length - 1] < pages) html += '<span style="color:var(--muted)">...</span><button class="btn-sm btn-outline" data-p="' + pages + '">' + pages + '</button>';
+      if (state.page < pages) html += '<button class="btn-sm btn-outline" data-p="' + (state.page + 1) + '">\u2192</button>';
+      btnsEl.innerHTML = html;
+      btnsEl.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => { state.page = parseInt(b.dataset.p); renderFn(); });
+      });
+    }
+
+    // ===================== FILTER TAGS =====================
+    function renderFilterTags(prefix, search, matchType, minClicks, maxPos) {
+      const el = document.getElementById(prefix + 'FilterTags');
+      let html = '';
+      if (search) html += '<div class="filter-tag">' + matchType + ': "' + escHtml(search) + '" <span class="remove" data-clear="search">&times;</span></div>';
+      if (minClicks > 0) html += '<div class="filter-tag">clicks >= ' + minClicks + ' <span class="remove" data-clear="minclicks">&times;</span></div>';
+      if (maxPos < 999) html += '<div class="filter-tag">pos <= ' + maxPos + ' <span class="remove" data-clear="maxpos">&times;</span></div>';
+      el.innerHTML = html;
+      el.querySelectorAll('.remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const c = btn.dataset.clear;
+          if (c === 'search') document.getElementById(prefix + 'Search').value = '';
+          if (c === 'minclicks') document.getElementById(prefix + 'MinClicks').value = '';
+          if (c === 'maxpos') document.getElementById(prefix + 'MaxPos').value = '';
+          if (prefix === 'q') applyQueryFilter(); else if (prefix === 'p') applyPageFilter();
+        });
+      });
+    }
+
+    // ===================== GA4 HELPERS =====================
+    function fmtDuration(secs) {
+      if (!secs || secs < 0) return '0m 0s';
+      const m = Math.floor(secs / 60);
+      const s = Math.round(secs % 60);
+      return m + 'm ' + s + 's';
+    }
+    function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
+    function ga4Sort(data, col, dir) {
+      return [...data].sort((a, b) => {
+        const va = a[col] ?? '', vb = b[col] ?? '';
+        if (typeof va === 'string' && typeof vb === 'string') return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        return dir === 'asc' ? (va || 0) - (vb || 0) : (vb || 0) - (va || 0);
+      });
+    }
+
+    // ===================== GA4 OVERVIEW =====================
+    function renderGA4Overview() {
+      if (!GA4_SECTIONS || !GA4_SECTIONS.orgOverview) return;
+      const c = GA4_SECTIONS.orgOverview, p = GA4_SECTIONS.orgOverviewPrev;
+      document.getElementById('kpiOrgSessions').textContent = c.sessions.toLocaleString();
+      document.getElementById('kpiOrgUsers').textContent = c.users.toLocaleString();
+      document.getElementById('kpiOrgEngaged').textContent = c.engagedSessions.toLocaleString();
+      document.getElementById('kpiOrgEngRate').textContent = fmtPct(c.engagementRate);
+      document.getElementById('kpiOrgBounce').textContent = fmtPct(c.bounceRate);
+      if (isComparing && p) {
+        document.getElementById('kpiOrgSessionsChg').innerHTML = chgHtml(c.sessions, p.sessions) + ' vs prev';
+        document.getElementById('kpiOrgSessionsPrev').textContent = 'Prev: ' + p.sessions.toLocaleString();
+        document.getElementById('kpiOrgUsersChg').innerHTML = chgHtml(c.users, p.users) + ' vs prev';
+        document.getElementById('kpiOrgUsersPrev').textContent = 'Prev: ' + p.users.toLocaleString();
+        document.getElementById('kpiOrgEngagedChg').innerHTML = chgHtml(c.engagedSessions, p.engagedSessions) + ' vs prev';
+        document.getElementById('kpiOrgEngagedPrev').textContent = 'Prev: ' + p.engagedSessions.toLocaleString();
+        document.getElementById('kpiOrgEngRateChg').innerHTML = chgHtml(c.engagementRate, p.engagementRate) + ' vs prev';
+        document.getElementById('kpiOrgEngRatePrev').textContent = 'Prev: ' + fmtPct(p.engagementRate);
+        document.getElementById('kpiOrgBounceChg').innerHTML = chgHtml(c.bounceRate, p.bounceRate, true) + ' vs prev';
+        document.getElementById('kpiOrgBouncePrev').textContent = 'Prev: ' + fmtPct(p.bounceRate);
+      } else {
+        ['kpiOrgSessionsChg','kpiOrgSessionsPrev','kpiOrgUsersChg','kpiOrgUsersPrev','kpiOrgEngagedChg','kpiOrgEngagedPrev','kpiOrgEngRateChg','kpiOrgEngRatePrev','kpiOrgBounceChg','kpiOrgBouncePrev'].forEach(id => document.getElementById(id).textContent = '');
+      }
+      // Quality metrics
+      document.getElementById('qmEngRate').textContent = fmtPct(c.engagementRate);
+      document.getElementById('qmEngSessions').textContent = c.engagedSessions.toLocaleString();
+      document.getElementById('qmAvgDuration').textContent = fmtDuration(c.avgSessionDuration);
+      document.getElementById('qmPagesPerSession').textContent = c.pagesPerSession.toFixed(2);
+    }
+
+    function renderGA4OrgDailyChart() {
+      if (!GA4_SECTIONS || !GA4_SECTIONS.orgDaily || !GA4_SECTIONS.orgDaily.length) return;
+      if (charts.ga4OrgDailyChart) charts.ga4OrgDailyChart.destroy();
+      const d = GA4_SECTIONS.orgDaily;
+      charts.ga4OrgDailyChart = new Chart(document.getElementById('ga4OrgDailyChart'), {
+        type: 'line',
+        data: {
+          labels: d.map(r => r.date),
+          datasets: [
+            { label: 'Sessions', data: d.map(r => r.sessions), borderColor: '#6366f1', backgroundColor: '#6366f122', fill: true, tension: .3, pointRadius: 2, borderWidth: 2 },
+            { label: 'Engaged Sessions', data: d.map(r => r.engagedSessions), borderColor: '#22c55e', backgroundColor: '#22c55e22', fill: true, tension: .3, pointRadius: 2, borderWidth: 2 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { size: 10 } } } },
+          scales: { y: { title: { display: true, text: 'Sessions' }, grid: { color: '#2a2d3a' } } }
+        }
+      });
+    }
+
+    // ===================== GA4 LANDING PAGES =====================
+    function renderGA4LandingPages() {
+      if (!GA4_SECTIONS) return;
+      const search = document.getElementById('lpSearch').value.toLowerCase();
+      lpState.filtered = (GA4_SECTIONS.landingPages || []).filter(r => !search || r.landingPage.toLowerCase().includes(search));
+      lpState.page = 1;
+      renderLPTable();
+    }
+    function renderLPTable() {
+      const sorted = ga4Sort(lpState.filtered, lpState.sortCol, lpState.sortDir);
+      const perPage = parseInt(document.getElementById('lpPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (lpState.page > pages) lpState.page = pages || 1;
+      const start = perPage > 0 ? (lpState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+      document.getElementById('lpResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#lpTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === lpState.sortCol) th.classList.add('sorted-' + lpState.sortDir);
+      });
+      document.getElementById('lpBody').innerHTML = slice.map((r, i) =>
+        '<tr><td>' + (start + i + 1) + '</td>' +
+        '<td class="page-url" title="' + escHtml(r.landingPage) + '">' + escHtml(r.landingPage) + '</td>' +
+        '<td class="num"><strong>' + r.sessions.toLocaleString() + '</strong></td>' +
+        '<td class="num">' + r.engagedSessions.toLocaleString() + '</td>' +
+        '<td class="num">' + fmtPct(r.engagementRate) + '</td>' +
+        '<td class="num">' + fmtDuration(r.avgDuration) + '</td></tr>'
+      ).join('');
+      renderPagination('lp', lpState, total, perPage, pages, renderLPTable);
+    }
+
+    // ===================== GA4 CONTENT =====================
+    function renderGA4Content() {
+      if (!GA4_SECTIONS) return;
+      const search = document.getElementById('ceSearch').value.toLowerCase();
+      ceState.filtered = (GA4_SECTIONS.content || []).filter(r => !search || r.pagePath.toLowerCase().includes(search));
+      ceState.page = 1;
+      renderCETable();
+    }
+    function renderCETable() {
+      const sorted = ga4Sort(ceState.filtered, ceState.sortCol, ceState.sortDir);
+      const perPage = parseInt(document.getElementById('cePerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (ceState.page > pages) ceState.page = pages || 1;
+      const start = perPage > 0 ? (ceState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+      document.getElementById('ceResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#ceTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === ceState.sortCol) th.classList.add('sorted-' + ceState.sortDir);
+      });
+      document.getElementById('ceBody').innerHTML = slice.map((r, i) =>
+        '<tr><td>' + (start + i + 1) + '</td>' +
+        '<td class="page-url" title="' + escHtml(r.pagePath) + '">' + escHtml(r.pagePath) + '</td>' +
+        '<td class="num"><strong>' + r.pageViews.toLocaleString() + '</strong></td>' +
+        '<td class="num">' + r.sessions.toLocaleString() + '</td>' +
+        '<td class="num">' + fmtPct(r.engagementRate) + '</td>' +
+        '<td class="num">' + fmtDuration(r.engagementTime) + '</td></tr>'
+      ).join('');
+      renderPagination('ce', ceState, total, perPage, pages, renderCETable);
+    }
+
+    // ===================== GA4 DEVICES =====================
+    function renderGA4Devices() {
+      if (!GA4_SECTIONS || !GA4_SECTIONS.devices || !GA4_SECTIONS.devices.length) return;
+      const d = GA4_SECTIONS.devices;
+      // Doughnut chart
+      if (charts.ga4DeviceChart) charts.ga4DeviceChart.destroy();
+      const colors = ['#6366f1', '#22d3ee', '#f97316', '#a78bfa', '#22c55e'];
+      charts.ga4DeviceChart = new Chart(document.getElementById('ga4DeviceChart'), {
+        type: 'doughnut',
+        data: {
+          labels: d.map(r => r.deviceCategory),
+          datasets: [{ data: d.map(r => r.sessions), backgroundColor: colors.slice(0, d.length), borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+      });
+      // Table
+      document.getElementById('devBody').innerHTML = d.map(r =>
+        '<tr><td>' + escHtml(r.deviceCategory) + '</td>' +
+        '<td class="num"><strong>' + r.sessions.toLocaleString() + '</strong></td>' +
+        '<td class="num">' + r.users.toLocaleString() + '</td>' +
+        '<td class="num">' + r.engagedSessions.toLocaleString() + '</td>' +
+        '<td class="num">' + fmtPct(r.engagementRate) + '</td>' +
+        '<td class="num">' + r.conversions.toLocaleString() + '</td></tr>'
+      ).join('');
+    }
+
+    // ===================== GA4 GEOGRAPHIC =====================
+    function renderGA4Geo() {
+      if (!GA4_SECTIONS) return;
+      const search = document.getElementById('geoSearch').value.toLowerCase();
+      geoState.filtered = (GA4_SECTIONS.geo || []).filter(r => !search || r.country.toLowerCase().includes(search) || r.city.toLowerCase().includes(search));
+      geoState.page = 1;
+      renderGeoTable();
+    }
+    function renderGeoTable() {
+      const sorted = ga4Sort(geoState.filtered, geoState.sortCol, geoState.sortDir);
+      const perPage = parseInt(document.getElementById('geoPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (geoState.page > pages) geoState.page = pages || 1;
+      const start = perPage > 0 ? (geoState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+      document.getElementById('geoResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#geoTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === geoState.sortCol) th.classList.add('sorted-' + geoState.sortDir);
+      });
+      document.getElementById('geoBody').innerHTML = slice.map((r, i) =>
+        '<tr><td>' + (start + i + 1) + '</td>' +
+        '<td>' + escHtml(r.country) + '</td>' +
+        '<td>' + escHtml(r.city) + '</td>' +
+        '<td class="num"><strong>' + r.sessions.toLocaleString() + '</strong></td>' +
+        '<td class="num">' + r.engagedSessions.toLocaleString() + '</td>' +
+        '<td class="num">' + r.conversions.toLocaleString() + '</td></tr>'
+      ).join('');
+      renderPagination('geo', geoState, total, perPage, pages, renderGeoTable);
+    }
+
+    // ===================== GA4 CHANNELS =====================
+    function renderGA4Channels() {
+      if (!GA4_SECTIONS || !GA4_SECTIONS.channels || !GA4_SECTIONS.channels.length) return;
+      const d = GA4_SECTIONS.channels;
+      // Bar chart
+      if (charts.ga4ChannelChart) charts.ga4ChannelChart.destroy();
+      charts.ga4ChannelChart = new Chart(document.getElementById('ga4ChannelChart'), {
+        type: 'bar',
+        data: {
+          labels: d.map(r => r.channel),
+          datasets: [{ label: 'Sessions', data: d.map(r => r.sessions), backgroundColor: '#6366f1', borderRadius: 4 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { title: { display: true, text: 'Sessions' }, grid: { color: '#2a2d3a' } } }
+        }
+      });
+      // Table
+      document.getElementById('chBody').innerHTML = d.map(r =>
+        '<tr><td>' + escHtml(r.channel) + '</td>' +
+        '<td class="num"><strong>' + r.sessions.toLocaleString() + '</strong></td>' +
+        '<td class="num">' + r.users.toLocaleString() + '</td>' +
+        '<td class="num">' + r.engagedSessions.toLocaleString() + '</td>' +
+        '<td class="num">' + fmtPct(r.engagementRate) + '</td>' +
+        '<td class="num">' + r.conversions.toLocaleString() + '</td></tr>'
+      ).join('');
+    }
+
+    // ===================== GA4 NEW VS RETURNING =====================
+    function renderGA4NvR() {
+      if (!GA4_SECTIONS || !GA4_SECTIONS.nvr || !GA4_SECTIONS.nvr.length) return;
+      const d = GA4_SECTIONS.nvr;
+      // Doughnut chart
+      if (charts.ga4NvRChart) charts.ga4NvRChart.destroy();
+      charts.ga4NvRChart = new Chart(document.getElementById('ga4NvRChart'), {
+        type: 'doughnut',
+        data: {
+          labels: d.map(r => r.type),
+          datasets: [{ data: d.map(r => r.sessions), backgroundColor: ['#6366f1', '#22c55e', '#f97316'], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 } } } } }
+      });
+      // Table
+      document.getElementById('nvrBody').innerHTML = d.map(r =>
+        '<tr><td>' + escHtml(r.type) + '</td>' +
+        '<td class="num"><strong>' + r.sessions.toLocaleString() + '</strong></td>' +
+        '<td class="num">' + r.users.toLocaleString() + '</td>' +
+        '<td class="num">' + r.engagedSessions.toLocaleString() + '</td>' +
+        '<td class="num">' + fmtPct(r.engagementRate) + '</td></tr>'
+      ).join('');
+    }
+
+    // ===================== AI DASHBOARD =====================
+    function renderAiDashboard() {
+      if (!DATA) return;
+
+      // KPIs
+      document.getElementById('kpiAiSessions').textContent = (DATA.ai_sessions_cur || 0).toLocaleString();
+      const ga4t = GA4 ? GA4.totals : null;
+      const totalSessions = ga4t ? (ga4t.sessions_cur || 0) : 0;
+      const aiShare = totalSessions > 0 ? ((DATA.ai_sessions_cur / totalSessions) * 100).toFixed(2) : '0';
+      document.getElementById('kpiAiShare').textContent = aiShare + '%';
+      document.getElementById('kpiAiShareSub').textContent = DATA.ai_sessions_cur.toLocaleString() + ' of ' + totalSessions.toLocaleString() + ' sessions';
+
+      // Find top AI source from daily by source data
+      const aiSourceMap = {};
+      if (DATA.ga4_daily_cur) {
+        // We need the raw daily-by-source data; rebuild from stored daily data won't work.
+        // Instead, compute from the ga4DailyBySrcCur we already processed into ga4_daily_cur.
+        // The daily_cur only has totals. We'll use a separate approach: parse AI sources from the raw data.
+      }
+      // Top AI source - we'll build it from our daily processing
+      // Since we don't store per-source totals, derive from the existing ga4DailyBySource response
+      // We stored ai_sessions_cur total but not per-source. Let's track it in DATA.
+      const topSrc = DATA.ai_source_totals && DATA.ai_source_totals.length > 0 ? DATA.ai_source_totals[0] : null;
+      if (topSrc) {
+        document.getElementById('kpiTopAiSource').textContent = topSrc.source;
+        document.getElementById('kpiTopAiSourceSub').textContent = topSrc.sessions.toLocaleString() + ' sessions';
+      } else {
+        document.getElementById('kpiTopAiSource').textContent = '—';
+        document.getElementById('kpiTopAiSourceSub').textContent = '';
+      }
+
+      if (isComparing && DATA.ai_sessions_prev !== null) {
+        document.getElementById('kpiAiSessionsChg').innerHTML = chgHtml(DATA.ai_sessions_cur, DATA.ai_sessions_prev) + ' vs prev';
+        document.getElementById('kpiAiSessionsPrev').textContent = 'Prev: ' + DATA.ai_sessions_prev.toLocaleString();
+      } else {
+        document.getElementById('kpiAiSessionsChg').textContent = '';
+        document.getElementById('kpiAiSessionsPrev').textContent = '';
+      }
+
+      // Chart
+      if (charts.aiDailyChart) charts.aiDailyChart.destroy();
+      const dc = DATA.ga4_daily_cur;
+      const dp = DATA.ga4_daily_prev;
+      const labels = dc.map(d => d.date);
+      const datasets = [
+        { label: 'AI Sessions', data: dc.map(d => d.ai), backgroundColor: '#a78bfa88', borderColor: '#a78bfa', borderWidth: 1, borderRadius: 4, yAxisID: 'y' }
+      ];
+      if (isComparing && dp.length) {
+        datasets.push({ label: 'AI Sessions (prev)', data: dp.map(d => d.ai), backgroundColor: '#4b556344', borderColor: '#4b5563', borderWidth: 1, borderRadius: 4, borderDash: [4, 3], yAxisID: 'y' });
+      }
+      charts.aiDailyChart = new Chart(document.getElementById('aiDailyChart'), {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: { y: { title: { display: true, text: 'Sessions' }, grid: { color: '#2a2d3a' } } },
+          plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { size: 10 } } } }
+        }
+      });
+
+      // AI sources table
+      if (DATA.ai_source_totals && DATA.ai_source_totals.length) {
+        document.getElementById('aiSrcBody').innerHTML = DATA.ai_source_totals.map(r =>
+          '<tr><td>' + escHtml(r.source) + '</td><td class="num"><strong>' + r.sessions.toLocaleString() + '</strong></td></tr>'
+        ).join('');
+      }
+    }
+
+    // ===================== ADS TABLE =====================
+    function applyAdsFilter() {
+      if (!ADS_DATA) return;
+      const search = document.getElementById('adsSearch').value.toLowerCase();
+      adsState.filtered = ADS_DATA.filter(r => {
+        if (search && !r.name.toLowerCase().includes(search)) return false;
+        return true;
+      });
+      adsState.page = 1;
+      renderAdsKPIs();
+      renderAdsTable();
+    }
+
+    function renderAdsKPIs() {
+      const data = adsState.filtered;
+      const totalSpend = data.reduce((s, r) => s + r.cost, 0);
+      const totalClicks = data.reduce((s, r) => s + r.clicks, 0);
+      const totalImpr = data.reduce((s, r) => s + r.impressions, 0);
+      const totalSessions = data.reduce((s, r) => s + (r.sessions || 0), 0);
+      const totalConv = data.reduce((s, r) => s + r.conversions, 0);
+      document.getElementById('kpiAdSpend').textContent = '\u20AC' + totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('kpiAdClicks').textContent = totalClicks.toLocaleString();
+      document.getElementById('kpiAdImpr').textContent = totalImpr.toLocaleString();
+    }
+
+    function sortAdsData(data, col, dir) {
+      return [...data].sort((a, b) => {
+        const va = a[col] ?? 0, vb = b[col] ?? 0;
+        if (col === 'name') return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        return dir === 'asc' ? va - vb : vb - va;
+      });
+    }
+
+    function renderAdsTable() {
+      renderAdsTableWithLinks();
+    }
+
+    // ===================== ADS SUB-TABS =====================
+    function switchAdsSubTab(name) {
+      document.querySelectorAll('#adsSubTabs .sub-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#tab-ads .sub-content').forEach(c => c.classList.remove('active'));
+      document.querySelector('#adsSubTabs .sub-tab[data-subtab="' + name + '"]').classList.add('active');
+      document.getElementById('sub-' + name).classList.add('active');
+    }
+
+    document.querySelectorAll('#adsSubTabs .sub-tab').forEach(tab => {
+      tab.addEventListener('click', () => switchAdsSubTab(tab.dataset.subtab));
+    });
+
+    function populateCampaignSelects() {
+      if (!ADS_DATA) return;
+      const names = ADS_DATA.map(r => r.name).sort();
+      ['stCampaignSelect', 'agCampaignSelect'].forEach(id => {
+        const sel = document.getElementById(id);
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">— Select a campaign —</option>' +
+          names.map(n => '<option value="' + escHtml(n) + '"' + (n === cur ? ' selected' : '') + '>' + escHtml(n) + '</option>').join('');
+      });
+    }
+
+    // Make campaign names clickable in campaigns table
+    function renderAdsTableWithLinks() {
+      const sorted = sortAdsData(adsState.filtered, adsState.sortCol, adsState.sortDir);
+      const perPage = parseInt(document.getElementById('adsPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (adsState.page > pages) adsState.page = pages || 1;
+      const start = perPage > 0 ? (adsState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+
+      document.getElementById('adsResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#adsTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === adsState.sortCol) th.classList.add('sorted-' + adsState.sortDir);
+      });
+
+      document.getElementById('adsBody').innerHTML = slice.map((r, i) =>
+        '<tr>' +
+        '<td>' + (start + i + 1) + '</td>' +
+        '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.name) + '">' +
+          '<a class="campaign-link" data-campaign="' + escHtml(r.name) + '">' + escHtml(r.name) + '</a></td>' +
+        '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
+        '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
+        '<td class="num">' + r.impressions.toLocaleString() + '</td>' +
+        '<td class="num" style="color:var(--purple)">' + (r.sessions || 0).toLocaleString() + '</td>' +
+        '<td class="num">' + r.ctr + '%</td>' +
+        '<td class="num">\u20AC' + r.cpc.toFixed(2) + '</td>' +
+        '<td class="num">' + r.conversions + '</td>' +
+        '</tr>'
+      ).join('');
+
+      renderPagination('ads', adsState, total, perPage, pages, renderAdsTableWithLinks);
+    }
+
+    // Click campaign → go to Search Terms
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('.campaign-link');
+      if (!link) return;
+      const campaign = link.dataset.campaign;
+      if (!campaign) return;
+      document.getElementById('stCampaignSelect').value = campaign;
+      document.getElementById('agCampaignSelect').value = campaign;
+      switchAdsSubTab('searchterms');
+      loadSearchTerms(campaign);
+    });
+
+    // ===================== SEARCH TERMS =====================
+    async function loadSearchTerms(campaignName) {
+      if (!campaignName || !accessToken) return;
+      selectedCampaignST = campaignName;
+      document.getElementById('stCampaignName').textContent = campaignName;
+      document.getElementById('stEmpty').style.display = 'none';
+      document.getElementById('stLoading').style.display = 'block';
+      document.getElementById('stTableWrap').style.display = 'none';
+
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      try {
+        const data = await ga4AdsSearchTermsQuery(startDate, endDate, campaignName);
+        ADS_SEARCH_TERMS = processAdsRows(data, 'query');
+        stState.page = 1;
+        applySearchTermsFilter();
+        document.getElementById('stLoading').style.display = 'none';
+        document.getElementById('stTableWrap').style.display = '';
+      } catch (e) {
+        document.getElementById('stLoading').textContent = 'Error: ' + e.message;
+        console.error('Search terms error:', e);
+      }
+    }
+
+    function processAdsRows(data, dimKey) {
+      if (!data || !data.rows) return [];
+      return data.rows.map(r => {
+        const name = r.dimensionValues[0].value || '(not set)';
+        const cost = parseFloat(r.metricValues[0].value) || 0;
+        const clicks = parseInt(r.metricValues[1].value) || 0;
+        const impressions = parseInt(r.metricValues[2].value) || 0;
+        const sessions = parseInt(r.metricValues[3].value) || 0;
+        const conversions = parseFloat(r.metricValues[4].value) || 0;
+        return {
+          [dimKey]: name,
+          cost: parseFloat(cost.toFixed(2)),
+          clicks,
+          impressions,
+          sessions,
+          ctr: impressions > 0 ? parseFloat((clicks / impressions * 100).toFixed(2)) : 0,
+          cpc: clicks > 0 ? parseFloat((cost / clicks).toFixed(2)) : 0,
+          conversions: parseFloat(conversions.toFixed(1))
+        };
+      }).filter(r => r[dimKey] !== '(not set)');
+    }
+
+    function applySearchTermsFilter() {
+      if (!ADS_SEARCH_TERMS) return;
+      const search = document.getElementById('stSearch').value.toLowerCase();
+      stState.filtered = ADS_SEARCH_TERMS.filter(r => {
+        if (search && !r.query.toLowerCase().includes(search)) return false;
+        return true;
+      });
+      stState.page = 1;
+      renderSearchTermsTable();
+    }
+
+    function renderSearchTermsTable() {
+      const sorted = sortAdsData2(stState.filtered, stState.sortCol, stState.sortDir, 'query');
+      const perPage = parseInt(document.getElementById('stPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (stState.page > pages) stState.page = pages || 1;
+      const start = perPage > 0 ? (stState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+
+      document.getElementById('stResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#stTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === stState.sortCol) th.classList.add('sorted-' + stState.sortDir);
+      });
+
+      document.getElementById('stBody').innerHTML = slice.map((r, i) =>
+        '<tr>' +
+        '<td>' + (start + i + 1) + '</td>' +
+        '<td class="kw-cell" title="' + escHtml(r.query) + '">' + escHtml(r.query) + '</td>' +
+        '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
+        '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
+        '<td class="num">' + r.impressions.toLocaleString() + '</td>' +
+        '<td class="num" style="color:var(--purple)">' + r.sessions.toLocaleString() + '</td>' +
+        '<td class="num">' + r.ctr + '%</td>' +
+        '<td class="num">\u20AC' + r.cpc.toFixed(2) + '</td>' +
+        '<td class="num">' + r.conversions + '</td>' +
+        '</tr>'
+      ).join('');
+
+      renderPagination('st', stState, total, perPage, pages, renderSearchTermsTable);
+    }
+
+    // ===================== AD GROUPS =====================
+    async function loadAdGroups(campaignName) {
+      if (!campaignName || !accessToken) return;
+      selectedCampaignAG = campaignName;
+      document.getElementById('agCampaignName').textContent = campaignName;
+      document.getElementById('agEmpty').style.display = 'none';
+      document.getElementById('agLoading').style.display = 'block';
+      document.getElementById('agTableWrap').style.display = 'none';
+
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      try {
+        const data = await ga4AdsAdGroupsQuery(startDate, endDate, campaignName);
+        ADS_AD_GROUPS = processAdsRows(data, 'adGroup');
+        agState.page = 1;
+        applyAdGroupsFilter();
+        document.getElementById('agLoading').style.display = 'none';
+        document.getElementById('agTableWrap').style.display = '';
+      } catch (e) {
+        document.getElementById('agLoading').textContent = 'Error: ' + e.message;
+        console.error('Ad groups error:', e);
+      }
+    }
+
+    function applyAdGroupsFilter() {
+      if (!ADS_AD_GROUPS) return;
+      const search = document.getElementById('agSearch').value.toLowerCase();
+      agState.filtered = ADS_AD_GROUPS.filter(r => {
+        if (search && !r.adGroup.toLowerCase().includes(search)) return false;
+        return true;
+      });
+      agState.page = 1;
+      renderAdGroupsTable();
+    }
+
+    function renderAdGroupsTable() {
+      const sorted = sortAdsData2(agState.filtered, agState.sortCol, agState.sortDir, 'adGroup');
+      const perPage = parseInt(document.getElementById('agPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
+      if (agState.page > pages) agState.page = pages || 1;
+      const start = perPage > 0 ? (agState.page - 1) * perPage : 0;
+      const slice = perPage > 0 ? sorted.slice(start, start + perPage) : sorted;
+
+      document.getElementById('agResultCount').textContent = '(' + total + ' results)';
+      document.querySelectorAll('#agTable th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.col === agState.sortCol) th.classList.add('sorted-' + agState.sortDir);
+      });
+
+      document.getElementById('agBody').innerHTML = slice.map((r, i) =>
+        '<tr>' +
+        '<td>' + (start + i + 1) + '</td>' +
+        '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.adGroup) + '">' + escHtml(r.adGroup) + '</td>' +
+        '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
+        '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
+        '<td class="num">' + r.impressions.toLocaleString() + '</td>' +
+        '<td class="num" style="color:var(--purple)">' + r.sessions.toLocaleString() + '</td>' +
+        '<td class="num">' + r.ctr + '%</td>' +
+        '<td class="num">\u20AC' + r.cpc.toFixed(2) + '</td>' +
+        '<td class="num">' + r.conversions + '</td>' +
+        '</tr>'
+      ).join('');
+
+      renderPagination('ag', agState, total, perPage, pages, renderAdGroupsTable);
+    }
+
+    function sortAdsData2(data, col, dir, nameCol) {
+      return [...data].sort((a, b) => {
+        const va = a[col] ?? 0, vb = b[col] ?? 0;
+        if (col === nameCol || col === 'query' || col === 'adGroup') return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        return dir === 'asc' ? va - vb : vb - va;
+      });
+    }
+
+    // ===================== CSV EXPORT =====================
+    function exportCSV(data, columns, filename) {
+      const header = columns.map(c => c.label).join(',');
+      const rows = data.map(r => columns.map(c => {
+        let v = c.get(r);
+        if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) v = '"' + v.replace(/"/g, '""') + '"';
+        return v;
+      }).join(','));
+      const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+    }
+
+    // ===================== TREND MODAL =====================
+    let trendCharts = {};
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('trendModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('trendModal')) closeModal();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    function closeModal() {
+      document.getElementById('trendModal').classList.remove('active');
+      Object.values(trendCharts).forEach(c => c.destroy());
+      trendCharts = {};
+    }
+
+    async function showTrend(dimension, value) {
+      if (!accessToken) return;
+
+      const modal = document.getElementById('trendModal');
+      const title = dimension === 'query' ? value : shortUrl(value);
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalSub').textContent = 'Loading 3-month trend data...';
+      document.getElementById('modalStats').innerHTML = '';
+      modal.classList.add('active');
+
+      Object.values(trendCharts).forEach(c => c.destroy());
+      trendCharts = {};
+
+      try {
+        const endDate = document.getElementById('endDate').value || fmt(new Date());
+        const d = new Date(endDate); d.setMonth(d.getMonth() - 3);
+        const startDate = fmt(d);
+
+        // GSC trend query
+        const gscBody = {
+          startDate,
+          endDate,
+          dimensions: ['date'],
+          dimensionFilterGroups: [{
+            filters: [{
+              dimension: dimension === 'query' ? 'query' : 'page',
+              expression: value
+            }]
+          }],
+          rowLimit: 25000,
+          dataState: 'all'
+        };
+
+        // Parallel: GSC trend + GA4 trend (only for pages)
+        const promises = [apiPost(GSC_API, gscBody)];
+        if (dimension === 'page') {
+          let pagePath; try { pagePath = new URL(value).pathname; } catch (e) { pagePath = value; }
+          promises.push(ga4TrendQuery(startDate, endDate, pagePath).catch(() => null));
+        }
+
+        const results = await Promise.all(promises);
+        const gscResult = results[0];
+        const ga4Result = dimension === 'page' ? results[1] : null;
+
+        // Process GSC data
+        const data = (gscResult.rows || []).map(r => ({
+          date: r.keys[0],
+          clicks: r.clicks || 0,
+          impressions: r.impressions || 0,
+          ctr: parseFloat(((r.ctr || 0) * 100).toFixed(2)),
+          position: parseFloat((r.position || 0).toFixed(1))
+        })).sort((a, b) => a.date.localeCompare(b.date));
+
+        // Merge GA4 sessions
+        if (ga4Result && ga4Result.rows) {
+          const ga4Map = {};
+          for (const r of ga4Result.rows) {
+            // GA4 date format is YYYYMMDD
+            const raw = r.dimensionValues[0].value;
+            const dateStr = raw.length === 8 ? raw.substring(0, 4) + '-' + raw.substring(4, 6) + '-' + raw.substring(6, 8) : raw;
+            ga4Map[dateStr] = parseInt(r.metricValues[0].value) || 0;
+          }
+          for (const d of data) {
+            d.sessions = ga4Map[d.date] || 0;
+          }
+        }
+
+        if (data.length === 0) {
+          document.getElementById('modalSub').textContent = 'No data found for this period.';
+          return;
+        }
+
+        document.getElementById('modalSub').textContent = data[0].date + ' to ' + data[data.length - 1].date + ' (' + data.length + ' days)';
+
+        // Stats
+        const avgPos = (data.reduce((s, d) => s + d.position, 0) / data.length).toFixed(1);
+        const totalClicks = data.reduce((s, d) => s + d.clicks, 0);
+        const totalImpr = data.reduce((s, d) => s + d.impressions, 0);
+        const avgCtr = totalImpr > 0 ? (totalClicks / totalImpr * 100).toFixed(2) : '0';
+        const hasGA4 = data.some(d => d.sessions !== undefined);
+        const totalSessions = hasGA4 ? data.reduce((s, d) => s + (d.sessions || 0), 0) : null;
+        let statsHtml =
+          '<div class="stat"><div class="stat-label">Avg Position</div><div class="stat-value" style="color:var(--orange)">' + avgPos + '</div></div>' +
+          '<div class="stat"><div class="stat-label">Total Clicks</div><div class="stat-value" style="color:var(--accent)">' + totalClicks.toLocaleString() + '</div></div>' +
+          '<div class="stat"><div class="stat-label">Total Impressions</div><div class="stat-value" style="color:var(--accent2)">' + totalImpr.toLocaleString() + '</div></div>' +
+          '<div class="stat"><div class="stat-label">Avg CTR</div><div class="stat-value" style="color:var(--green)">' + avgCtr + '%</div></div>';
+        if (totalSessions !== null) {
+          statsHtml += '<div class="stat"><div class="stat-label">GA4 Sessions</div><div class="stat-value" style="color:var(--purple)">' + totalSessions.toLocaleString() + '</div></div>';
+        }
+        document.getElementById('modalStats').innerHTML = statsHtml;
+
+        const labels = data.map(d => d.date);
+
+        // Position chart
+        trendCharts.pos = new Chart(document.getElementById('trendPosChart'), {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Position', data: data.map(d => d.position),
+              borderColor: '#f97316', backgroundColor: '#f9731622', fill: true,
+              tension: .3, pointRadius: 1.5, borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { reverse: true, title: { display: true, text: 'Position' }, grid: { color: '#2a2d3a' } } },
+            plugins: { legend: { display: false } }
+          }
+        });
+
+        // Clicks chart
+        trendCharts.clicks = new Chart(document.getElementById('trendClicksChart'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Clicks', data: data.map(d => d.clicks),
+              backgroundColor: '#6366f1', borderRadius: 2
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { title: { display: true, text: 'Clicks' }, grid: { color: '#2a2d3a' } } },
+            plugins: { legend: { display: false } }
+          }
+        });
+
+        // Impressions + CTR
+        trendCharts.impr = new Chart(document.getElementById('trendImprChart'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Impressions', data: data.map(d => d.impressions), backgroundColor: '#22d3ee44', borderColor: '#22d3ee', borderWidth: 1, borderRadius: 2, yAxisID: 'y' },
+              { label: 'CTR %', data: data.map(d => d.ctr), borderColor: '#22c55e', type: 'line', tension: .3, pointRadius: 1, borderWidth: 2, yAxisID: 'y1' }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+              y: { position: 'left', title: { display: true, text: 'Impressions' }, grid: { color: '#2a2d3a' } },
+              y1: { position: 'right', title: { display: true, text: 'CTR %' }, grid: { drawOnChartArea: false } }
+            },
+            plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } }
+          }
+        });
+
+        // GA4 Sessions chart
+        const ga4Card = document.getElementById('ga4TrendCard');
+        if (hasGA4) {
+          ga4Card.style.display = '';
+          trendCharts.ga4 = new Chart(document.getElementById('trendGA4Chart'), {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                { label: 'Sessions', data: data.map(d => d.sessions || 0), backgroundColor: '#a78bfa88', borderColor: '#a78bfa', borderWidth: 1, borderRadius: 2 }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              scales: { y: { title: { display: true, text: 'Sessions' }, grid: { color: '#2a2d3a' } } },
+              plugins: { legend: { display: false } }
+            }
+          });
+        } else {
+          ga4Card.style.display = 'none';
+        }
+
+      } catch (e) {
+        document.getElementById('modalSub').textContent = 'Error loading trend: ' + e.message;
+      }
+    }
+
+    // Delegate trend button clicks
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-trend');
+      if (!btn) return;
+      const dim = btn.dataset.dim;
+      const val = btn.dataset.val;
+      if (dim && val) showTrend(dim, val);
+    });
+
+    // ===================== QUERY SUB-TABS =====================
+    document.querySelectorAll('#querySubTabs .sub-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#querySubTabs .sub-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('#tab-queries .sub-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('sub-' + tab.dataset.subtab).classList.add('active');
+      });
+    });
+
+    // ===================== EVENT LISTENERS =====================
+    document.getElementById('qApplyFilter').addEventListener('click', applyQueryFilter);
+    document.getElementById('qSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyQueryFilter(); });
+    document.getElementById('qClearFilter').addEventListener('click', () => {
+      ['qSearch', 'qMinClicks', 'qMaxPos'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('qMatchType').value = 'contains';
+      applyQueryFilter();
+    });
+    document.getElementById('qExport').addEventListener('click', () => {
+      const sorted = sortData(qState.filtered, qState.sortCol, qState.sortDir);
+      const cols = [
+        { label: 'Query', get: r => r.keyword },
+        { label: 'Clicks', get: r => r.clicks_cur },
+        { label: 'Impressions', get: r => r.impressions_cur },
+        { label: 'CTR', get: r => r.ctr_cur },
+        { label: 'Position', get: r => r.position_cur }
+      ];
+      if (isComparing) {
+        cols.push({ label: 'Clicks Prev', get: r => r.clicks_prev ?? '' });
+        cols.push({ label: 'Impressions Prev', get: r => r.impressions_prev ?? '' });
+        cols.push({ label: 'CTR Prev', get: r => r.ctr_prev ?? '' });
+        cols.push({ label: 'Position Prev', get: r => r.position_prev ?? '' });
+      }
+      exportCSV(sorted, cols, 'gsc-queries-export.csv');
+    });
+    document.getElementById('qPerPage').addEventListener('change', () => { qState.page = 1; renderQueryTable(); });
+
+    // Core Queries events
+    document.getElementById('coreAddBtn').addEventListener('click', () => {
+      const inp = document.getElementById('coreAddInput');
+      addCoreQuery(inp.value);
+      inp.value = '';
+    });
+    document.getElementById('coreAddInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { addCoreQuery(e.target.value); e.target.value = ''; }
+    });
+    document.getElementById('coreImportBtn').addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        const lines = text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+        let added = 0;
+        for (const line of lines) {
+          const q = line.toLowerCase().trim();
+          if (q && !coreQueries.includes(q)) { coreQueries.push(q); added++; }
+        }
+        if (added > 0) { saveCoreQueries(coreQueries); renderCoreTags(); applyCoreFilter(); }
+        alert('Added ' + added + ' new core queries from clipboard');
+      } catch(e) { alert('Could not read clipboard. Please paste manually.'); }
+    });
+    document.getElementById('coreExportList').addEventListener('click', () => {
+      const blob = new Blob([coreQueries.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'core-queries.txt'; a.click();
+    });
+    document.getElementById('coreClearAll').addEventListener('click', () => {
+      if (confirm('Remove all core queries?')) {
+        coreQueries = [];
+        saveCoreQueries(coreQueries);
+        renderCoreTags();
+        applyCoreFilter();
+      }
+    });
+    document.getElementById('coreSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyCoreFilter(); });
+    document.getElementById('corePerPage').addEventListener('change', () => { coreState.page = 1; renderCoreTable(); });
+    document.getElementById('coreExportCSV').addEventListener('click', () => {
+      const sorted = sortData(coreState.filtered, coreState.sortCol, coreState.sortDir);
+      exportCSV(sorted, [
+        { label: 'Query', get: r => r.keyword },
+        { label: 'Clicks', get: r => r.clicks_cur },
+        { label: 'Impressions', get: r => r.impressions_cur },
+        { label: 'CTR', get: r => r.ctr_cur },
+        { label: 'Position', get: r => r.position_cur ?? '' }
+      ], 'core-queries-export.csv');
+    });
+    document.querySelectorAll('#coreTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (coreState.sortCol === col) coreState.sortDir = coreState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { coreState.sortCol = col; coreState.sortDir = (col === 'keyword' || col === 'position_cur') ? 'asc' : 'desc'; }
+        coreState.page = 1; renderCoreTable();
+      });
+    });
+
+    // Low Hanging Fruits events
+    document.getElementById('lhfApply').addEventListener('click', applyLHFFilter);
+    document.getElementById('lhfSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyLHFFilter(); });
+    document.getElementById('lhfExport').addEventListener('click', () => {
+      const sorted = sortData(lhfState.filtered, lhfState.sortCol, lhfState.sortDir);
+      exportCSV(sorted, [
+        { label: 'Query', get: r => r.keyword },
+        { label: 'Clicks', get: r => r.clicks_cur },
+        { label: 'Impressions', get: r => r.impressions_cur },
+        { label: 'CTR', get: r => r.ctr_cur },
+        { label: 'Position', get: r => r.position_cur },
+        { label: 'Opportunity', get: r => r.opportunity }
+      ], 'low-hanging-fruits.csv');
+    });
+    document.getElementById('lhfPerPage').addEventListener('change', () => { lhfState.page = 1; renderLHFTable(); });
+    document.querySelectorAll('#lhfTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (lhfState.sortCol === col) lhfState.sortDir = lhfState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { lhfState.sortCol = col; lhfState.sortDir = (col === 'keyword' || col === 'position_cur') ? 'asc' : 'desc'; }
+        lhfState.page = 1; renderLHFTable();
+      });
+    });
+
+    document.getElementById('pApplyFilter').addEventListener('click', applyPageFilter);
+    document.getElementById('pSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyPageFilter(); });
+    document.getElementById('pClearFilter').addEventListener('click', () => {
+      ['pSearch', 'pMinClicks', 'pMaxPos'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('pMatchType').value = 'contains';
+      applyPageFilter();
+    });
+    document.getElementById('pExport').addEventListener('click', () => {
+      const sorted = sortData(pState.filtered, pState.sortCol, pState.sortDir);
+      const cols = [
+        { label: 'Page', get: r => r.page },
+        { label: 'Clicks', get: r => r.clicks_cur },
+        { label: 'Impressions', get: r => r.impressions_cur },
+        { label: 'CTR', get: r => r.ctr_cur },
+        { label: 'Position', get: r => r.position_cur }
+      ];
+      if (isComparing) {
+        cols.push({ label: 'Clicks Prev', get: r => r.clicks_prev ?? '' });
+        cols.push({ label: 'Impressions Prev', get: r => r.impressions_prev ?? '' });
+        cols.push({ label: 'CTR Prev', get: r => r.ctr_prev ?? '' });
+        cols.push({ label: 'Position Prev', get: r => r.position_prev ?? '' });
+      }
+      exportCSV(sorted, cols, 'gsc-pages-export.csv');
+    });
+    document.getElementById('pPerPage').addEventListener('change', () => { pState.page = 1; renderPageTable(); });
+
+    // GA4 Sub-tabs
+    document.querySelectorAll('#ga4SubTabs .sub-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#ga4SubTabs .sub-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('#tab-ga4 .sub-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('sub-' + tab.dataset.subtab).classList.add('active');
+      });
+    });
+
+    // Landing Pages events
+    document.getElementById('lpSearch').addEventListener('keydown', e => { if (e.key === 'Enter') renderGA4LandingPages(); });
+    document.getElementById('lpPerPage').addEventListener('change', () => { lpState.page = 1; renderLPTable(); });
+    document.getElementById('lpExport').addEventListener('click', () => {
+      exportCSV(ga4Sort(lpState.filtered, lpState.sortCol, lpState.sortDir), [
+        { label: 'Landing Page', get: r => r.landingPage },
+        { label: 'Sessions', get: r => r.sessions },
+        { label: 'Engaged Sessions', get: r => r.engagedSessions },
+        { label: 'Engagement Rate', get: r => fmtPct(r.engagementRate) },
+        { label: 'Avg Duration', get: r => fmtDuration(r.avgDuration) }
+      ], 'ga4-landing-pages.csv');
+    });
+    document.querySelectorAll('#lpTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (lpState.sortCol === col) lpState.sortDir = lpState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { lpState.sortCol = col; lpState.sortDir = col === 'landingPage' ? 'asc' : 'desc'; }
+        lpState.page = 1; renderLPTable();
+      });
+    });
+
+    // Content Engagement events
+    document.getElementById('ceSearch').addEventListener('keydown', e => { if (e.key === 'Enter') renderGA4Content(); });
+    document.getElementById('cePerPage').addEventListener('change', () => { ceState.page = 1; renderCETable(); });
+    document.getElementById('ceExport').addEventListener('click', () => {
+      exportCSV(ga4Sort(ceState.filtered, ceState.sortCol, ceState.sortDir), [
+        { label: 'Page Path', get: r => r.pagePath },
+        { label: 'Page Views', get: r => r.pageViews },
+        { label: 'Sessions', get: r => r.sessions },
+        { label: 'Engagement Rate', get: r => fmtPct(r.engagementRate) },
+        { label: 'Engagement Time', get: r => fmtDuration(r.engagementTime) }
+      ], 'ga4-content.csv');
+    });
+    document.querySelectorAll('#ceTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (ceState.sortCol === col) ceState.sortDir = ceState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { ceState.sortCol = col; ceState.sortDir = col === 'pagePath' ? 'asc' : 'desc'; }
+        ceState.page = 1; renderCETable();
+      });
+    });
+
+    // Geographic events
+    document.getElementById('geoSearch').addEventListener('keydown', e => { if (e.key === 'Enter') renderGA4Geo(); });
+    document.getElementById('geoPerPage').addEventListener('change', () => { geoState.page = 1; renderGeoTable(); });
+    document.getElementById('geoExport').addEventListener('click', () => {
+      exportCSV(ga4Sort(geoState.filtered, geoState.sortCol, geoState.sortDir), [
+        { label: 'Country', get: r => r.country },
+        { label: 'City', get: r => r.city },
+        { label: 'Sessions', get: r => r.sessions },
+        { label: 'Engaged Sessions', get: r => r.engagedSessions },
+        { label: 'Conversions', get: r => r.conversions }
+      ], 'ga4-geographic.csv');
+    });
+    document.querySelectorAll('#geoTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (geoState.sortCol === col) geoState.sortDir = geoState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { geoState.sortCol = col; geoState.sortDir = (col === 'country' || col === 'city') ? 'asc' : 'desc'; }
+        geoState.page = 1; renderGeoTable();
+      });
+    });
+
+    // Channel table sorting
+    document.querySelectorAll('#chTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        if (!GA4_SECTIONS || !GA4_SECTIONS.channels) return;
+        const col = th.dataset.col;
+        const curDir = th.classList.contains('sorted-asc') ? 'asc' : 'desc';
+        const newDir = curDir === 'desc' ? 'asc' : 'desc';
+        GA4_SECTIONS.channels = ga4Sort(GA4_SECTIONS.channels, col, newDir);
+        document.querySelectorAll('#chTable th').forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+        th.classList.add('sorted-' + newDir);
+        renderGA4Channels();
+      });
+    });
+
+    // Column sorting
+    document.querySelectorAll('#qTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (qState.sortCol === col) qState.sortDir = qState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { qState.sortCol = col; qState.sortDir = (col === 'keyword' || col === 'position_cur' || col === 'position_prev') ? 'asc' : 'desc'; }
+        qState.page = 1; renderQueryTable();
+      });
+    });
+    document.querySelectorAll('#pTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (pState.sortCol === col) pState.sortDir = pState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { pState.sortCol = col; pState.sortDir = (col === 'page' || col === 'position_cur' || col === 'position_prev') ? 'asc' : 'desc'; }
+        pState.page = 1; renderPageTable();
+      });
+    });
+
+    // Ads Events
+    document.getElementById('adsApplyFilter').addEventListener('click', applyAdsFilter);
+    document.getElementById('adsSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyAdsFilter(); });
+    document.getElementById('adsClearFilter').addEventListener('click', () => {
+      document.getElementById('adsSearch').value = '';
+      applyAdsFilter();
+    });
+    document.getElementById('adsExport').addEventListener('click', () => {
+      const sorted = sortAdsData(adsState.filtered, adsState.sortCol, adsState.sortDir);
+      const cols = [
+        { label: 'Campaign', get: r => r.name },
+        { label: 'Cost', get: r => r.cost },
+        { label: 'Clicks', get: r => r.clicks },
+        { label: 'Impressions', get: r => r.impressions },
+        { label: 'Sessions', get: r => r.sessions || 0 },
+        { label: 'CTR', get: r => r.ctr },
+        { label: 'Avg CPC', get: r => r.cpc },
+        { label: 'Conversions', get: r => r.conversions }
+      ];
+      exportCSV(sorted, cols, 'google-ads-export.csv');
+    });
+    document.getElementById('adsPerPage').addEventListener('change', () => { adsState.page = 1; renderAdsTable(); });
+    document.querySelectorAll('#adsTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (adsState.sortCol === col) adsState.sortDir = adsState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { adsState.sortCol = col; adsState.sortDir = col === 'name' ? 'asc' : 'desc'; }
+        adsState.page = 1; renderAdsTable();
+      });
+    });
+
+    // Search Terms Events
+    document.getElementById('stLoadBtn').addEventListener('click', () => {
+      const campaign = document.getElementById('stCampaignSelect').value;
+      if (campaign) loadSearchTerms(campaign);
+    });
+    document.getElementById('stCampaignSelect').addEventListener('change', () => {
+      const campaign = document.getElementById('stCampaignSelect').value;
+      if (campaign) loadSearchTerms(campaign);
+    });
+    document.getElementById('stSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applySearchTermsFilter(); });
+    document.getElementById('stPerPage').addEventListener('change', () => { stState.page = 1; renderSearchTermsTable(); });
+    document.getElementById('stExport').addEventListener('click', () => {
+      if (!stState.filtered) return;
+      const sorted = sortAdsData2(stState.filtered, stState.sortCol, stState.sortDir, 'query');
+      exportCSV(sorted, [
+        { label: 'Search Term', get: r => r.query },
+        { label: 'Cost', get: r => r.cost },
+        { label: 'Clicks', get: r => r.clicks },
+        { label: 'Impressions', get: r => r.impressions },
+        { label: 'Sessions', get: r => r.sessions },
+        { label: 'CTR', get: r => r.ctr },
+        { label: 'Avg CPC', get: r => r.cpc },
+        { label: 'Conversions', get: r => r.conversions }
+      ], 'ads-search-terms-' + (selectedCampaignST || 'all') + '.csv');
+    });
+    document.querySelectorAll('#stTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (stState.sortCol === col) stState.sortDir = stState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { stState.sortCol = col; stState.sortDir = col === 'query' ? 'asc' : 'desc'; }
+        stState.page = 1; renderSearchTermsTable();
+      });
+    });
+
+    // Ad Groups Events
+    document.getElementById('agLoadBtn').addEventListener('click', () => {
+      const campaign = document.getElementById('agCampaignSelect').value;
+      if (campaign) loadAdGroups(campaign);
+    });
+    document.getElementById('agCampaignSelect').addEventListener('change', () => {
+      const campaign = document.getElementById('agCampaignSelect').value;
+      if (campaign) loadAdGroups(campaign);
+    });
+    document.getElementById('agSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyAdGroupsFilter(); });
+    document.getElementById('agPerPage').addEventListener('change', () => { agState.page = 1; renderAdGroupsTable(); });
+    document.getElementById('agExport').addEventListener('click', () => {
+      if (!agState.filtered) return;
+      const sorted = sortAdsData2(agState.filtered, agState.sortCol, agState.sortDir, 'adGroup');
+      exportCSV(sorted, [
+        { label: 'Ad Group', get: r => r.adGroup },
+        { label: 'Cost', get: r => r.cost },
+        { label: 'Clicks', get: r => r.clicks },
+        { label: 'Impressions', get: r => r.impressions },
+        { label: 'Sessions', get: r => r.sessions },
+        { label: 'CTR', get: r => r.ctr },
+        { label: 'Avg CPC', get: r => r.cpc },
+        { label: 'Conversions', get: r => r.conversions }
+      ], 'ads-ad-groups-' + (selectedCampaignAG || 'all') + '.csv');
+    });
+    document.querySelectorAll('#agTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (agState.sortCol === col) agState.sortDir = agState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { agState.sortCol = col; agState.sortDir = col === 'adGroup' ? 'asc' : 'desc'; }
+        agState.page = 1; renderAdGroupsTable();
+      });
+    });
+
+    // ===================== MAILCHIMP =====================
+    function saveMcKeyAndLoad() {
+      const inp = document.getElementById('mcKeyInput');
+      const key = inp.value.trim();
+      if (!key || !key.includes('-')) { alert('Please enter a valid Mailchimp API key (format: xxxxx-usXX)'); return; }
+      localStorage.setItem('pricefox_mc_key', key);
+      fetchMailchimpData();
+    }
+
+    async function fetchMailchimpData() {
+      const apiKey = getMcApiKey();
+      if (!apiKey) { alert('No Mailchimp API key set.'); return; }
+      const btn = document.getElementById('mcLoadBtn');
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      try {
+        const baseUrl = getMcBaseUrl();
+        const url = MC_PROXY + encodeURIComponent(baseUrl + '/campaigns?count=100&sort_field=send_time&sort_dir=DESC&fields=campaigns.id,campaigns.settings.title,campaigns.settings.subject_line,campaigns.send_time,campaigns.emails_sent,campaigns.report_summary,campaigns.status');
+        const resp = await fetch(url, {
+          headers: {
+            'Authorization': 'Basic ' + btoa('anystring:' + apiKey)
+          }
+        });
+        if (!resp.ok) throw new Error('Mailchimp API error: ' + resp.status);
+        const json = await resp.json();
+        MC_DATA = (json.campaigns || []).map(c => ({
+          id: c.id,
+          title: (c.settings && c.settings.title) || '',
+          subject: (c.settings && c.settings.subject_line) || '',
+          send_time: c.send_time || '',
+          emails_sent: c.emails_sent || 0,
+          unique_opens: (c.report_summary && c.report_summary.unique_opens) || 0,
+          open_rate: (c.report_summary && c.report_summary.open_rate) || 0,
+          unique_clicks: (c.report_summary && c.report_summary.subscriber_clicks) || (c.report_summary && c.report_summary.unique_clicks) || 0,
+          click_rate: (c.report_summary && c.report_summary.click_rate) || 0,
+          unsubscribed: (c.report_summary && c.report_summary.unsubscribed) || 0,
+          status: c.status || ''
+        }));
+        mcLoaded = true;
+        document.getElementById('mcLoadPrompt').style.display = 'none';
+        document.getElementById('mcContent').style.display = '';
+        document.getElementById('mcCount').textContent = MC_DATA.length;
+        renderMailchimpTab();
+      } catch (e) {
+        console.error('Mailchimp fetch error:', e);
+        btn.textContent = 'Error - Retry';
+        btn.disabled = false;
+        alert('Failed to load Mailchimp data: ' + e.message);
+      }
+    }
+
+    function renderMailchimpTab() {
+      if (!MC_DATA) return;
+      const search = document.getElementById('mcSearch').value.toLowerCase();
+      const statusFilter = document.getElementById('mcStatusFilter').value;
+      mcState.filtered = MC_DATA.filter(r => {
+        if (search && !r.title.toLowerCase().includes(search) && !r.subject.toLowerCase().includes(search)) return false;
+        if (statusFilter && r.status !== statusFilter) return false;
+        return true;
+      });
+
+      // KPIs - only sent campaigns
+      const sent = mcState.filtered.filter(r => r.status === 'sent');
+      document.getElementById('kpiMcCampaigns').textContent = sent.length.toLocaleString();
+      if (sent.length > 0) {
+        const avgOpen = sent.reduce((s, r) => s + r.open_rate, 0) / sent.length;
+        const avgClick = sent.reduce((s, r) => s + r.click_rate, 0) / sent.length;
+        document.getElementById('kpiMcOpenRate').textContent = (avgOpen * 100).toFixed(1) + '%';
+        document.getElementById('kpiMcClickRate').textContent = (avgClick * 100).toFixed(1) + '%';
+      } else {
+        document.getElementById('kpiMcOpenRate').textContent = '—';
+        document.getElementById('kpiMcClickRate').textContent = '—';
+      }
+
+      document.getElementById('mcResultCount').textContent = mcState.filtered.length;
+      renderMailchimpTable();
+    }
+
+    function renderMailchimpTable() {
+      const col = mcState.sortCol;
+      const dir = mcState.sortDir;
+      const sorted = [...mcState.filtered].sort((a, b) => {
+        let va = a[col], vb = b[col];
+        if (col === 'send_time') { va = va || ''; vb = vb || ''; return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va); }
+        if (typeof va === 'string') return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        return dir === 'asc' ? va - vb : vb - va;
+      });
+
+      const perPage = parseInt(document.getElementById('mcPerPage').value) || 0;
+      const total = sorted.length;
+      const pages = perPage ? Math.ceil(total / perPage) : 1;
+      if (mcState.page > pages) mcState.page = pages || 1;
+      const start = perPage ? (mcState.page - 1) * perPage : 0;
+      const slice = perPage ? sorted.slice(start, start + perPage) : sorted;
+
+      const body = document.getElementById('mcBody');
+      body.innerHTML = slice.map((r, i) => {
+        const rank = start + i + 1;
+        const dateStr = r.send_time ? formatMcDate(r.send_time) : '—';
+        const openPct = (r.open_rate * 100).toFixed(1);
+        const clickPct = (r.click_rate * 100).toFixed(1);
+        const statusBadge = r.status === 'sent' ? '<span style="color:var(--green)">Sent</span>'
+          : r.status === 'save' ? '<span style="color:var(--muted)">Draft</span>'
+          : r.status === 'schedule' ? '<span style="color:var(--orange)">Scheduled</span>'
+          : '<span style="color:var(--muted)">' + r.status + '</span>';
+        return '<tr>' +
+          '<td>' + rank + '</td>' +
+          '<td>' + escHtml(r.title) + '</td>' +
+          '<td>' + escHtml(r.subject) + '</td>' +
+          '<td>' + dateStr + '</td>' +
+          '<td class="num">' + r.emails_sent.toLocaleString() + '</td>' +
+          '<td class="num">' + r.unique_opens.toLocaleString() + '</td>' +
+          '<td class="num" style="color:var(--green)">' + openPct + '%</td>' +
+          '<td class="num">' + r.unique_clicks.toLocaleString() + '</td>' +
+          '<td class="num" style="color:var(--accent2)">' + clickPct + '%</td>' +
+          '<td class="num" style="color:' + (r.unsubscribed > 0 ? 'var(--red)' : 'var(--muted)') + '">' + r.unsubscribed + '</td>' +
+          '<td>' + statusBadge + '</td>' +
+          '</tr>';
+      }).join('');
+
+      // Pagination info
+      const info = document.getElementById('mcPagInfo');
+      info.textContent = perPage ? `Showing ${start + 1}-${Math.min(start + perPage, total)} of ${total}` : `Showing all ${total}`;
+
+      // Pagination buttons
+      const btnsEl = document.getElementById('mcPagBtns');
+      btnsEl.innerHTML = '';
+      if (pages > 1) {
+        for (let p = 1; p <= pages; p++) {
+          const b = document.createElement('button');
+          b.className = 'btn-sm' + (p === mcState.page ? '' : ' btn-outline');
+          b.textContent = p;
+          b.addEventListener('click', () => { mcState.page = p; renderMailchimpTable(); });
+          btnsEl.appendChild(b);
+        }
+      }
+
+      // Update sort indicators
+      document.querySelectorAll('#mcTable th[data-col]').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.col === col) th.classList.add('sort-' + dir);
+      });
+    }
+
+    function formatMcDate(isoStr) {
+      const d = new Date(isoStr);
+      if (isNaN(d)) return isoStr;
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    }
+
+    // Mailchimp event listeners
+    document.getElementById('mcApplyFilter').addEventListener('click', () => { mcState.page = 1; renderMailchimpTab(); });
+    document.getElementById('mcClearFilter').addEventListener('click', () => {
+      document.getElementById('mcSearch').value = '';
+      document.getElementById('mcStatusFilter').value = '';
+      mcState.page = 1;
+      renderMailchimpTab();
+    });
+    document.getElementById('mcSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') { mcState.page = 1; renderMailchimpTab(); } });
+    document.getElementById('mcPerPage').addEventListener('change', () => { mcState.page = 1; renderMailchimpTable(); });
+    document.getElementById('mcExport').addEventListener('click', () => {
+      if (!mcState.filtered) return;
+      const col = mcState.sortCol, dir = mcState.sortDir;
+      const sorted = [...mcState.filtered].sort((a, b) => {
+        let va = a[col], vb = b[col];
+        if (col === 'send_time') return dir === 'asc' ? (va||'').localeCompare(vb||'') : (vb||'').localeCompare(va||'');
+        if (typeof va === 'string') return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        return dir === 'asc' ? va - vb : vb - va;
+      });
+      exportCSV(sorted, [
+        { label: 'Campaign Name', get: r => r.title },
+        { label: 'Subject', get: r => r.subject },
+        { label: 'Send Date', get: r => r.send_time ? formatMcDate(r.send_time) : '' },
+        { label: 'Emails Sent', get: r => r.emails_sent },
+        { label: 'Unique Opens', get: r => r.unique_opens },
+        { label: 'Open Rate %', get: r => (r.open_rate * 100).toFixed(1) },
+        { label: 'Unique Clicks', get: r => r.unique_clicks },
+        { label: 'Click Rate %', get: r => (r.click_rate * 100).toFixed(1) },
+        { label: 'Unsubscribes', get: r => r.unsubscribed },
+        { label: 'Status', get: r => r.status }
+      ], 'mailchimp-campaigns-export.csv');
+    });
+    document.querySelectorAll('#mcTable th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (col === 'rank') return;
+        if (mcState.sortCol === col) mcState.sortDir = mcState.sortDir === 'desc' ? 'asc' : 'desc';
+        else { mcState.sortCol = col; mcState.sortDir = ['title','subject','status'].includes(col) ? 'asc' : 'desc'; }
+        mcState.page = 1; renderMailchimpTable();
+      });
+    });
+  </script>
+</body>
+
+</html>
