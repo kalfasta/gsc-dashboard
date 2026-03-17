@@ -950,6 +950,7 @@
     <div class="tab" data-tab="ga4">GA4 <span id="gCount" class="count"></span></div>
     <div class="tab" data-tab="ads">Ads <span id="adsCount" class="count"></span></div>
     <div class="tab" data-tab="mailchimp">Mailchimp <span id="mcCount" class="count"></span></div>
+    <div class="tab" data-tab="ahrefs">Ahrefs</div>
   </div>
 
   <!-- TAB: OVERVIEW -->
@@ -1849,6 +1850,89 @@
             </table>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: AHREFS -->
+  <div class="tab-content" id="tab-ahrefs">
+    <!-- Controls -->
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:240px">
+        <label style="font-size:12px;color:var(--text-muted);white-space:nowrap">Ahrefs API Key</label>
+        <input type="password" id="ahrefsOverviewKey" placeholder="Bearer token…" style="flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:13px"/>
+        <button onclick="(()=>{const i=document.getElementById('ahrefsOverviewKey');i.type=i.type==='password'?'text':'password'})()" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:13px;color:var(--text-muted)">👁</button>
+      </div>
+      <button id="ahrefsOverviewFetchBtn" onclick="fetchAhrefsOverview()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 18px;font-size:13px;font-weight:600;cursor:pointer">🔄 Fetch Overview</button>
+      <span id="ahrefsOverviewInfo" style="font-size:12px;color:var(--text-muted)"></span>
+    </div>
+    <div id="ahrefsOverviewLoading" style="display:none;height:3px;background:linear-gradient(90deg,var(--accent),transparent);border-radius:2px;margin-bottom:12px;animation:pulse 1.5s infinite"></div>
+
+    <!-- KPI Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px" id="ahrefsKpiRow">
+      <div class="kpi"><div class="kpi-label">Total Visitors</div><div class="kpi-value" id="ahKpiVisitors">—</div></div>
+      <div class="kpi"><div class="kpi-label">Sessions</div><div class="kpi-value" id="ahKpiSessions">—</div></div>
+      <div class="kpi"><div class="kpi-label">Avg Bounce Rate</div><div class="kpi-value" id="ahKpiBounce">—</div></div>
+      <div class="kpi"><div class="kpi-label">Avg Visit Duration</div><div class="kpi-value" id="ahKpiDuration">—</div></div>
+      <div class="kpi"><div class="kpi-label">Top Country</div><div class="kpi-value" id="ahKpiCountry">—</div></div>
+      <div class="kpi"><div class="kpi-label">Top Device</div><div class="kpi-value" id="ahKpiDevice">—</div></div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">📱 Visitors by Device</div>
+        <canvas id="ahDevicesChart" height="200"></canvas>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">🌍 Top Countries</div>
+        <canvas id="ahCountriesChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">🔗 Top Referrers</div>
+        <canvas id="ahReferrersChart" height="220"></canvas>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">🌐 Browsers</div>
+        <canvas id="ahBrowsersChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Bounce Rate & Duration by Device table -->
+    <div class="card" style="padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">📊 Device Breakdown</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Device</th>
+            <th class="num">Visitors</th>
+            <th class="num">Share</th>
+            <th class="num">Bounce Rate</th>
+            <th class="num">Avg Duration</th>
+          </tr></thead>
+          <tbody id="ahDevicesBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Referrers table -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">🔗 Referrer Details</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>#</th>
+            <th>Referrer</th>
+            <th class="num">Visitors</th>
+            <th class="num">Bounce Rate</th>
+            <th class="num">Avg Duration</th>
+          </tr></thead>
+          <tbody id="ahReferrersBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -4506,6 +4590,8 @@
         // Populate Mailchimp search datalist
         const mcDl = document.getElementById('mcSearchList');
         if (mcDl) mcDl.innerHTML = MC_DATA.map(c => '<option value="' + escHtml(c.title) + '">').join('');
+        // Sync MC campaign titles → UTM campaign list (add any missing ones)
+        syncMcToUtm();
         renderMailchimpTab();
       } catch (e) {
         console.error('Mailchimp fetch error:', e);
@@ -4907,6 +4993,178 @@
       if (e.key === 'Enter') document.getElementById('utmAddConfirm').click();
       if (e.key === 'Escape') document.getElementById('utmAddCancel').click();
     });
+
+    // ── SYNC MC CAMPAIGNS → UTM LIST ─────────────────────────────────────
+    function syncMcToUtm() {
+      if (!MC_DATA || !MC_DATA.length) return;
+      if (!UTM_CAMPAIGNS) loadUtmCampaigns();
+      const existing = new Set(UTM_CAMPAIGNS.map(c => c.toLowerCase()));
+      let added = 0;
+      MC_DATA.forEach(c => {
+        const title = (c.title || '').trim();
+        if (title && !existing.has(title.toLowerCase())) {
+          UTM_CAMPAIGNS.push(title);
+          existing.add(title.toLowerCase());
+          added++;
+        }
+      });
+      if (added > 0) {
+        saveUtmCampaigns();
+        renderUtmTable();
+        console.log('Synced ' + added + ' MC campaigns to UTM list');
+      }
+    }
+
+    // ── AHREFS SITE OVERVIEW ─────────────────────────────────────────────
+    let ahrefsCharts = {};
+
+    function getAhrefsOverviewKey() {
+      const el = document.getElementById('ahrefsOverviewKey');
+      const val = el ? el.value.trim() : '';
+      if (val) { localStorage.setItem('pricefox_ahrefs_key', val); return val; }
+      return localStorage.getItem('pricefox_ahrefs_key') || '';
+    }
+
+    // Pre-fill Ahrefs overview key on load
+    (function() {
+      const saved = localStorage.getItem('pricefox_ahrefs_key') || 'svkB1seekuTuec5YRX32wCpg9o-VWdAl8syjiwHG';
+      const el = document.getElementById('ahrefsOverviewKey');
+      if (el) el.value = saved;
+    })();
+
+    async function fetchAhrefsOverview() {
+      const apiKey = getAhrefsOverviewKey();
+      if (!apiKey) { alert('Please enter your Ahrefs API key.'); return; }
+
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      if (!startDate || !endDate) { alert('Please select a date range first.'); return; }
+
+      const btn = document.getElementById('ahrefsOverviewFetchBtn');
+      btn.disabled = true; btn.textContent = '⏳ Fetching...';
+      document.getElementById('ahrefsOverviewLoading').style.display = '';
+      document.getElementById('ahrefsOverviewInfo').textContent = 'Fetching from Ahrefs...';
+
+      const proxy = getMcProxyUrl().replace(/\/+$/, '');
+      const baseParams = {
+        from: startDate + 'T00:00:00Z',
+        to: endDate + 'T23:59:59Z',
+        project_id: '2197307',
+        limit: '50',
+        order_by: 'visitors:desc'
+      };
+      const headers = { 'Authorization': 'Bearer ' + apiKey };
+
+      try {
+        const [devicesResp, countriesResp, referrersResp, browsersResp] = await Promise.all([
+          fetch(proxy + '/ahrefs/v3/web-analytics/devices?' + new URLSearchParams(baseParams), { headers }),
+          fetch(proxy + '/ahrefs/v3/web-analytics/countries?' + new URLSearchParams(baseParams), { headers }),
+          fetch(proxy + '/ahrefs/v3/web-analytics/referrers?' + new URLSearchParams({ ...baseParams, limit: '20' }), { headers }),
+          fetch(proxy + '/ahrefs/v3/web-analytics/browsers?' + new URLSearchParams(baseParams), { headers })
+        ]);
+
+        const [devicesJson, countriesJson, referrersJson, browsersJson] = await Promise.all([
+          devicesResp.json(), countriesResp.json(), referrersResp.json(), browsersResp.json()
+        ]);
+
+        const devices = devicesJson.stats || [];
+        const countries = countriesJson.stats || [];
+        const referrers = referrersJson.stats || [];
+        const browsers = browsersJson.stats || [];
+
+        // ── KPIs ──
+        const totalVisitors = devices.reduce((s, r) => s + (r.visitors || 0), 0);
+        const totalSessions = devices.reduce((s, r) => s + (r.visitors || 0), 0); // Ahrefs uses visitors as sessions
+        const avgBounce = devices.length ? (devices.reduce((s, r) => s + (r.session_bounce_rate || 0) * (r.visitors || 0), 0) / (totalVisitors || 1)) : null;
+        const avgDur = devices.length ? (devices.reduce((s, r) => s + (r.avg_session_duration_sec || 0) * (r.visitors || 0), 0) / (totalVisitors || 1)) : null;
+        const topCountry = countries[0] ? countries[0].country : '—';
+        const topDevice = devices[0] ? devices[0].device : '—';
+
+        document.getElementById('ahKpiVisitors').textContent = totalVisitors.toLocaleString();
+        document.getElementById('ahKpiSessions').textContent = totalSessions.toLocaleString();
+        document.getElementById('ahKpiBounce').textContent = avgBounce != null ? avgBounce.toFixed(1) + '%' : '—';
+        document.getElementById('ahKpiDuration').textContent = avgDur != null ? formatDuration(avgDur) : '—';
+        document.getElementById('ahKpiCountry').textContent = topCountry;
+        document.getElementById('ahKpiDevice').textContent = topDevice;
+
+        // ── CHARTS ──
+        const COLORS = ['#6366f1','#22d3ee','#f59e0b','#10b981','#f43f5e','#a78bfa','#fb923c','#34d399'];
+
+        // Devices donut
+        if (ahrefsCharts.devices) ahrefsCharts.devices.destroy();
+        ahrefsCharts.devices = new Chart(document.getElementById('ahDevicesChart'), {
+          type: 'doughnut',
+          data: {
+            labels: devices.map(r => r.device),
+            datasets: [{ data: devices.map(r => r.visitors), backgroundColor: COLORS, borderWidth: 2, borderColor: '#1a1d2e' }]
+          },
+          options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+        });
+
+        // Countries horizontal bar
+        const topCountries = countries.slice(0, 10);
+        if (ahrefsCharts.countries) ahrefsCharts.countries.destroy();
+        ahrefsCharts.countries = new Chart(document.getElementById('ahCountriesChart'), {
+          type: 'bar',
+          data: {
+            labels: topCountries.map(r => r.country),
+            datasets: [{ label: 'Visitors', data: topCountries.map(r => r.visitors), backgroundColor: '#6366f1', borderRadius: 4 }]
+          },
+          options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#2a2d3a' } }, y: { grid: { display: false } } } }
+        });
+
+        // Referrers horizontal bar (clean domain names)
+        const cleanRef = r => {
+          if (!r) return '(direct)';
+          try { return new URL(r).hostname.replace(/^www\./, ''); } catch(e) { return r.slice(0, 40); }
+        };
+        const topRefs = referrers.slice(0, 10);
+        if (ahrefsCharts.referrers) ahrefsCharts.referrers.destroy();
+        ahrefsCharts.referrers = new Chart(document.getElementById('ahReferrersChart'), {
+          type: 'bar',
+          data: {
+            labels: topRefs.map(r => cleanRef(r.source_referer)),
+            datasets: [{ label: 'Visitors', data: topRefs.map(r => r.visitors), backgroundColor: '#22d3ee', borderRadius: 4 }]
+          },
+          options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#2a2d3a' } }, y: { grid: { display: false } } } }
+        });
+
+        // Browsers donut
+        if (ahrefsCharts.browsers) ahrefsCharts.browsers.destroy();
+        ahrefsCharts.browsers = new Chart(document.getElementById('ahBrowsersChart'), {
+          type: 'doughnut',
+          data: {
+            labels: browsers.map(r => r.browser),
+            datasets: [{ data: browsers.map(r => r.visitors), backgroundColor: COLORS, borderWidth: 2, borderColor: '#1a1d2e' }]
+          },
+          options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+        });
+
+        // ── DEVICE TABLE ──
+        document.getElementById('ahDevicesBody').innerHTML = devices.map(r => {
+          const share = totalVisitors ? ((r.visitors / totalVisitors) * 100).toFixed(1) : 0;
+          const br = r.session_bounce_rate != null ? r.session_bounce_rate.toFixed(1) + '%' : '—';
+          const dur = r.avg_session_duration_sec != null ? formatDuration(r.avg_session_duration_sec) : '—';
+          return '<tr><td>' + r.device + '</td><td class="num">' + r.visitors.toLocaleString() + '</td><td class="num">' + share + '%</td><td class="num">' + br + '</td><td class="num">' + dur + '</td></tr>';
+        }).join('');
+
+        // ── REFERRERS TABLE ──
+        document.getElementById('ahReferrersBody').innerHTML = referrers.map((r, i) => {
+          const br = r.session_bounce_rate != null ? r.session_bounce_rate.toFixed(1) + '%' : '—';
+          const dur = r.avg_session_duration_sec != null ? formatDuration(r.avg_session_duration_sec) : '—';
+          const label = r.source_referer ? ('<a href="' + r.source_referer + '" target="_blank" style="color:var(--accent)">' + cleanRef(r.source_referer) + '</a>') : '<span style="color:var(--text-muted)">(direct / none)</span>';
+          return '<tr><td style="color:var(--text-muted)">' + (i+1) + '</td><td>' + label + '</td><td class="num">' + r.visitors.toLocaleString() + '</td><td class="num">' + br + '</td><td class="num">' + dur + '</td></tr>';
+        }).join('');
+
+        document.getElementById('ahrefsOverviewInfo').textContent = 'Loaded ' + startDate + ' → ' + endDate;
+      } catch(e) {
+        console.error('Ahrefs overview error:', e);
+        document.getElementById('ahrefsOverviewInfo').textContent = '❌ ' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = '🔄 Fetch Overview';
+        document.getElementById('ahrefsOverviewLoading').style.display = 'none';
+      }
+    }
 
     document.getElementById('utmExportBtn').addEventListener('click', () => {
       if (!UTM_CAMPAIGNS) return;
