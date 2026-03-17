@@ -1000,7 +1000,7 @@
       <div class="filter-bar">
         <h3>Filter Queries</h3>
         <div class="filter-row">
-          <div class="filter-group"><label>Search</label><input type="text" id="qSearch" placeholder="Type keyword..."></div>
+          <div class="filter-group"><label>Search</label><input type="text" id="qSearch" placeholder="Type keyword..." list="qSearchList"><datalist id="qSearchList"></datalist></div>
           <div class="filter-group"><label>Match Type</label>
             <select id="qMatchType">
               <option value="contains">Contains</option>
@@ -1182,8 +1182,7 @@
     <div class="filter-bar">
       <h3>Filter Pages</h3>
       <div class="filter-row">
-        <div class="filter-group"><label>Search URL</label><input type="text" id="pSearch"
-            placeholder="Type URL path..."></div>
+        <div class="filter-group"><label>Search URL</label><input type="text" id="pSearch" placeholder="Type URL path..." list="pSearchList"><datalist id="pSearchList"></datalist></div>
         <div class="filter-group"><label>Match Type</label>
           <select id="pMatchType">
             <option value="contains">Contains</option>
@@ -1533,7 +1532,7 @@
       <div class="filter-bar">
         <h3>Filter Campaigns</h3>
         <div class="filter-row">
-          <div class="filter-group"><label>Search</label><input type="text" id="adsSearch" placeholder="Campaign name..."></div>
+          <div class="filter-group"><label>Search</label><input type="text" id="adsSearch" placeholder="Campaign name..." list="adsSearchList"><datalist id="adsSearchList"></datalist></div>
           <div class="filter-group"><label>Show</label>
             <select id="adsPerPage">
               <option value="25">25 rows</option>
@@ -1732,56 +1731,116 @@
     </div>
 
     <div id="mcContent" style="display:none">
-      <div class="filter-bar">
-        <h3>Filter Campaigns</h3>
-        <div class="filter-row">
-          <div class="filter-group"><label>Search</label><input type="text" id="mcSearch" placeholder="Campaign name..."></div>
-          <div class="filter-group"><label>Status</label>
-            <select id="mcStatusFilter">
-              <option value="">All</option>
-              <option value="sent" selected>Sent</option>
-              <option value="save">Draft</option>
-              <option value="schedule">Scheduled</option>
-            </select>
+      <!-- MC SUB-TABS -->
+      <div class="sub-tabs" id="mcSubTabs">
+        <div class="sub-tab active" data-subtab="mccampaigns">Campaigns</div>
+        <div class="sub-tab" data-subtab="mcutm">UTM Campaigns</div>
+      </div>
+
+      <!-- SUB: CAMPAIGNS -->
+      <div class="sub-content active" id="sub-mccampaigns">
+        <div class="filter-bar">
+          <h3>Filter Campaigns</h3>
+          <div class="filter-row">
+            <div class="filter-group"><label>Search</label><input type="text" id="mcSearch" placeholder="Campaign name..." list="mcSearchList"><datalist id="mcSearchList"></datalist></div>
+            <div class="filter-group"><label>Status</label>
+              <select id="mcStatusFilter">
+                <option value="">All</option>
+                <option value="sent" selected>Sent</option>
+                <option value="save">Draft</option>
+                <option value="schedule">Scheduled</option>
+              </select>
+            </div>
+            <div class="filter-group"><label>Show</label>
+              <select id="mcPerPage">
+                <option value="25">25 rows</option>
+                <option value="50" selected>50 rows</option>
+                <option value="100">100 rows</option>
+                <option value="0">All</option>
+              </select>
+            </div>
+            <button class="btn-sm" id="mcApplyFilter">Apply</button>
+            <button class="btn-sm btn-outline" id="mcClearFilter">Clear</button>
+            <button class="btn-sm export-btn" id="mcExport">Export CSV</button>
           </div>
-          <div class="filter-group"><label>Show</label>
-            <select id="mcPerPage">
-              <option value="25">25 rows</option>
-              <option value="50" selected>50 rows</option>
-              <option value="100">100 rows</option>
-              <option value="0">All</option>
-            </select>
+        </div>
+        <div class="card">
+          <h2>Campaigns <span class="count" id="mcResultCount"></span></h2>
+          <div style="overflow-x:auto">
+            <table id="mcTable">
+              <thead>
+                <tr>
+                  <th data-col="rank">#</th>
+                  <th data-col="title">Campaign Name</th>
+                  <th data-col="subject">Subject</th>
+                  <th data-col="send_time">Send Date</th>
+                  <th data-col="emails_sent" class="num">Emails Sent</th>
+                  <th data-col="unique_opens" class="num">Opens</th>
+                  <th data-col="open_rate" class="num">Open Rate %</th>
+                  <th data-col="unique_clicks" class="num">Clicks</th>
+                  <th data-col="click_rate" class="num">Click Rate %</th>
+                  <th data-col="unsubscribed" class="num">Unsubs</th>
+                  <th data-col="status">Status</th>
+                </tr>
+              </thead>
+              <tbody id="mcBody"></tbody>
+            </table>
           </div>
-          <button class="btn-sm" id="mcApplyFilter">Apply</button>
-          <button class="btn-sm btn-outline" id="mcClearFilter">Clear</button>
-          <button class="btn-sm export-btn" id="mcExport">Export CSV</button>
+          <div class="pagination">
+            <div class="info" id="mcPagInfo"></div>
+            <div class="pages" id="mcPagBtns"></div>
+          </div>
         </div>
       </div>
-      <div class="card">
-        <h2>Campaigns <span class="count" id="mcResultCount"></span></h2>
-        <div style="overflow-x:auto">
-          <table id="mcTable">
-            <thead>
-              <tr>
-                <th data-col="rank">#</th>
-                <th data-col="title">Campaign Name</th>
-                <th data-col="subject">Subject</th>
-                <th data-col="send_time">Send Date</th>
-                <th data-col="emails_sent" class="num">Emails Sent</th>
-                <th data-col="unique_opens" class="num">Opens</th>
-                <th data-col="open_rate" class="num">Open Rate %</th>
-                <th data-col="unique_clicks" class="num">Clicks</th>
-                <th data-col="click_rate" class="num">Click Rate %</th>
-                <th data-col="unsubscribed" class="num">Unsubs</th>
-                <th data-col="status">Status</th>
-              </tr>
-            </thead>
-            <tbody id="mcBody"></tbody>
-          </table>
+
+      <!-- SUB: UTM CAMPAIGNS -->
+      <div class="sub-content" id="sub-mcutm">
+        <div class="filter-bar">
+          <h3>UTM Campaign Tracker</h3>
+          <div class="filter-row">
+            <div class="filter-group"><label>Search</label><input type="text" id="utmSearch" placeholder="Filter campaigns..." list="utmSearchList"><datalist id="utmSearchList"></datalist></div>
+            <button class="btn-sm" id="utmFetchBtn" style="background:var(--green)">🔄 Fetch GA4 Data</button>
+            <button class="btn-sm export-btn" id="utmExportBtn">Export CSV</button>
+            <button class="btn-sm" id="utmAddBtn" style="background:var(--accent2)">＋ Add Campaign</button>
+          </div>
         </div>
-        <div class="pagination">
-          <div class="info" id="mcPagInfo"></div>
-          <div class="pages" id="mcPagBtns"></div>
+
+        <!-- Add Campaign Modal -->
+        <div id="utmAddModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center">
+          <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:380px;max-width:90vw">
+            <h3 style="margin-bottom:16px;color:var(--text)">Add UTM Campaign</h3>
+            <div class="control-group" style="margin-bottom:12px">
+              <label>Campaign Name (utm_campaign value)</label>
+              <input type="text" id="utmNewName" placeholder="e.g. Apr2026-CI-Offers-Tesla" style="width:100%;margin-top:4px">
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+              <button class="btn-sm btn-outline" id="utmAddCancel">Cancel</button>
+              <button class="btn-sm" id="utmAddConfirm">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="position:relative">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <h2>UTM Campaigns <span class="count" id="utmResultCount"></span></h2>
+            <span style="font-size:11px;color:var(--muted)" id="utmDataInfo">Click "Fetch GA4 Data" to load metrics for the selected date range.</span>
+          </div>
+          <div id="utmLoadingBar" style="display:none;text-align:center;padding:20px;color:var(--muted)">⏳ Fetching GA4 data for all campaigns...</div>
+          <div style="overflow-x:auto">
+            <table id="utmTable">
+              <thead>
+                <tr>
+                  <th data-col="rank">#</th>
+                  <th data-col="campaign">Campaign</th>
+                  <th data-col="sessions" class="num">Visitors</th>
+                  <th data-col="bounceRate" class="num">Bounce Rate</th>
+                  <th data-col="avgDuration" class="num">Visit Duration</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="utmBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -2689,7 +2748,9 @@
       applyCoreFilter();
       applyLHFFilter();
       applyPageFilter();
-      if (ADS_DATA) { applyAdsFilter(); populateCampaignSelects(); renderAdsOverviewCharts(); }
+      if (ADS_DATA) { applyAdsFilter(); populateCampaignSelects(); renderAdsOverviewCharts(); populateAdsDatalist(); }
+      populateQueryDatalist();
+      populatePagesDatalist();
       document.getElementById('qCount').textContent = '(' + DATA.all_keywords.length.toLocaleString() + ')';
       document.getElementById('pCount').textContent = '(' + DATA.all_pages.length.toLocaleString() + ')';
       const orgSess = GA4_SECTIONS && GA4_SECTIONS.orgOverview ? GA4_SECTIONS.orgOverview.sessions : 0;
@@ -3604,6 +3665,30 @@
       });
     }
 
+    function populateAdsDatalist() {
+      if (!ADS_DATA) return;
+      const dl = document.getElementById('adsSearchList');
+      if (!dl) return;
+      dl.innerHTML = ADS_DATA.map(r => '<option value="' + escHtml(r.name) + '">').join('');
+    }
+
+    function populateQueryDatalist() {
+      if (!DATA || !DATA.all_keywords) return;
+      const dl = document.getElementById('qSearchList');
+      if (!dl) return;
+      // Top 200 keywords by clicks
+      const top = DATA.all_keywords.slice(0, 200);
+      dl.innerHTML = top.map(r => '<option value="' + escHtml(r.keyword) + '">').join('');
+    }
+
+    function populatePagesDatalist() {
+      if (!DATA || !DATA.all_pages) return;
+      const dl = document.getElementById('pSearchList');
+      if (!dl) return;
+      const top = DATA.all_pages.slice(0, 200);
+      dl.innerHTML = top.map(r => '<option value="' + escHtml(shortUrl(r.page)) + '">').join('');
+    }
+
     // Make campaign names clickable in campaigns table
     function renderAdsTableWithLinks() {
       const sorted = sortAdsData(adsState.filtered, adsState.sortCol, adsState.sortDir);
@@ -4411,6 +4496,9 @@
         document.getElementById('mcLoadPrompt').style.display = 'none';
         document.getElementById('mcContent').style.display = '';
         document.getElementById('mcCount').textContent = MC_DATA.length;
+        // Populate Mailchimp search datalist
+        const mcDl = document.getElementById('mcSearchList');
+        if (mcDl) mcDl.innerHTML = MC_DATA.map(c => '<option value="' + escHtml(c.title) + '">').join('');
         renderMailchimpTab();
       } catch (e) {
         console.error('Mailchimp fetch error:', e);
@@ -4560,6 +4648,262 @@
         else { mcState.sortCol = col; mcState.sortDir = ['title','subject','status'].includes(col) ? 'asc' : 'desc'; }
         mcState.page = 1; renderMailchimpTable();
       });
+    });
+
+    // ===================== MAILCHIMP SUB-TABS =====================
+    document.querySelectorAll('#mcSubTabs .sub-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#mcSubTabs .sub-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('#mcContent .sub-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('sub-' + tab.dataset.subtab).classList.add('active');
+      });
+    });
+
+    // ===================== UTM CAMPAIGNS =====================
+    const DEFAULT_UTM_CAMPAIGNS = [
+      'Mar2026- En- Offers - Reward Prime Plus (CI)',
+      'Mar2026- En- Offers - Reward Prime Plus (EN)',
+      'Mar2026- CI- Έλεγχος Κλήσης',
+      'Mar2026 -CI- Offers- Volkswagen Polo',
+      'Mar2026-CI- Offers- Volkswagen Golf',
+      'Mar2026 -CI- Offers- Opel Astra',
+      'Mar2026 -CI- Offers- Opel Corsa',
+      'Mar2026 -CI- Offers- Toyota Yaris',
+      'Mar2026 -CI- Πρόστιμα για ανασφάλιστα (CI)',
+      'Mar2026 -CI- Πρόστιμα για ανασφάλιστα (en)',
+      'Mar-New Prices for Energy B2C and B2B (ci)',
+      'Mar-New Prices for Energy B2C and B2B (en)',
+      'Feb2026- MI- Offers Spring',
+      'Feb2026- Κόστος Ηλεκτρικού Θερμοσίφωνα',
+      'Feb2026-CI- Τι να προσέξω σε φθηνά συμβόλαια;',
+      'Feb-CI-2026- Σαρακοστιανά',
+      'Feb2026- En- Offers - Enerwave reward prime plus (ci)',
+      'Feb2026- En- Offers - Enerwave reward prime plus',
+      'Feb2026- CI - Έρευνα Τιμές Ασφάλιστρα',
+      'Feb2026 - HI- Αιτήσεις έκπτωσης ΕΝΦΙΑ (copy 01)',
+      'Feb2026- En- Offers - ΖeniΘ Power Home Control Plus (ci)',
+      'Feb2026- En- Offers - ΖeniΘ Power Home Control Plus (en)',
+      'Feb2026-CI- Ενημέρωση Φυσικές Καταστροφές (βασικό)',
+      'Feb2026-CI- Ενημέρωση Φυσικές Καταστροφές (Πυρός/κλοπής)',
+      'Feb2026 - HI- Αιτήσεις έκπτωσης ΕΝΦΙΑ',
+      'Feb2026-CI- Ενημέρωση Προσωπικό Ατύχημα Ατλαντική (με κάλυψη)',
+      'Feb2026-CI- Ενημέρωση Προσωπικό Ατύχημα Ατλαντική (χωρίς κάλυψη)',
+      'Feb2026-New Prices for Energy B2C and B2B (ci)',
+      'Feb2026-New Prices for Energy B2C and B2B (en)',
+      'Feb2026- CI - Offers type & zip code',
+      'Jan2026-CI- Τεκμήρια Αυτοκινήτου',
+      'Jan 2026 - En- Offers- Zenith Power Home Control (ci)',
+      'Jan 2026 - En- Offers- Zenith Power Home Control (en)',
+      'Jan2026- CI- Πως διαβαζω το συμβόλαιο μου',
+      'Jan2026-En- Έρευνα Ενέργειας',
+      'Jan2026-CI- Εξοπλισμός Αυτοκινήτου Χειμώνα',
+      'Jan 2026 - En- Offers- Volton Blue Flat (ci)',
+      'Jan 2026 - En- Offers- Volton Blue Flat',
+      'Jan2026-CI- Ειδοποίηση για ανασφάλιστα',
+      'Jan2026-New Prices for Energy B2C and B2B (ci)',
+      'Jan2026-New Prices for Energy B2C and B2B (en)',
+      'Jan2026-CI-Offers- Ατλαντική Ένωση',
+      'Jan 2026 - CI - Offers',
+      'Dec- new year wishes (ci)',
+      'Dec- new year wishes (en)',
+      'Dec- CI- έρευνα καυσιμα',
+      'Dec-ci-tips before trip',
+      'Dec- en- branded offers- volton xmas promo (ci)',
+      'Dec- en- branded offers- volton xmas promo',
+      'Dec- en- Branded Offers- enerwave programs (2nd try)'
+    ];
+
+    let UTM_CAMPAIGNS = null; // loaded from localStorage or default
+    let UTM_DATA = {}; // { campaignName: { sessions, bounceRate, avgDuration } }
+
+    function loadUtmCampaigns() {
+      const saved = localStorage.getItem('pricefox_utm_campaigns');
+      if (saved) {
+        try { UTM_CAMPAIGNS = JSON.parse(saved); } catch(e) { UTM_CAMPAIGNS = [...DEFAULT_UTM_CAMPAIGNS]; }
+      } else {
+        UTM_CAMPAIGNS = [...DEFAULT_UTM_CAMPAIGNS];
+      }
+    }
+
+    function saveUtmCampaigns() {
+      localStorage.setItem('pricefox_utm_campaigns', JSON.stringify(UTM_CAMPAIGNS));
+    }
+
+    function renderUtmTable() {
+      if (!UTM_CAMPAIGNS) loadUtmCampaigns();
+      // Update datalist
+      const dl = document.getElementById('utmSearchList');
+      if (dl) dl.innerHTML = UTM_CAMPAIGNS.map(c => '<option value="' + escHtml(c) + '">').join('');
+      const search = (document.getElementById('utmSearch').value || '').toLowerCase();
+      const filtered = UTM_CAMPAIGNS.filter(c => !search || c.toLowerCase().includes(search));
+      document.getElementById('utmResultCount').textContent = '(' + filtered.length + ')';
+
+      document.getElementById('utmBody').innerHTML = filtered.map((campaign, i) => {
+        const d = UTM_DATA[campaign];
+        const visitors = d ? d.sessions.toLocaleString() : '—';
+        const bounce = d ? (d.bounceRate * 100).toFixed(1) + '%' : '—';
+        const dur = d ? formatDuration(d.avgDuration) : '—';
+        const bounceColor = d ? (d.bounceRate > 0.7 ? 'var(--red)' : d.bounceRate > 0.5 ? 'var(--orange)' : 'var(--green)') : 'var(--muted)';
+        return '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(campaign) + '">' + escHtml(campaign) + '</td>' +
+          '<td class="num" style="color:var(--accent)">' + visitors + '</td>' +
+          '<td class="num" style="color:' + bounceColor + '">' + bounce + '</td>' +
+          '<td class="num" style="color:var(--accent2)">' + dur + '</td>' +
+          '<td><button class="btn-sm btn-outline" style="padding:2px 8px;font-size:10px" onclick="deleteUtmCampaign(' + JSON.stringify(campaign) + ')">✕</button></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function formatDuration(seconds) {
+      if (!seconds || seconds < 1) return '0s';
+      const m = Math.floor(seconds / 60);
+      const s = Math.round(seconds % 60);
+      return m > 0 ? m + 'm ' + s + 's' : s + 's';
+    }
+
+    function deleteUtmCampaign(name) {
+      if (!confirm('Remove "' + name + '" from the list?')) return;
+      UTM_CAMPAIGNS = UTM_CAMPAIGNS.filter(c => c !== name);
+      delete UTM_DATA[name];
+      saveUtmCampaigns();
+      renderUtmTable();
+    }
+
+    async function fetchUtmData() {
+      if (!accessToken) { alert('Please sign in with Google first.'); return; }
+      if (!UTM_CAMPAIGNS || UTM_CAMPAIGNS.length === 0) { alert('No campaigns in the list.'); return; }
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      if (!startDate || !endDate) { alert('Please select a date range first.'); return; }
+
+      const btn = document.getElementById('utmFetchBtn');
+      btn.disabled = true; btn.textContent = '⏳ Fetching...';
+      document.getElementById('utmLoadingBar').style.display = '';
+      document.getElementById('utmDataInfo').textContent = 'Fetching...';
+
+      UTM_DATA = {};
+      try {
+        // Fetch all campaigns in one batch query using GA4 with dimension filter
+        const body = {
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: 'sessionCampaignName' }],
+          metrics: [
+            { name: 'sessions' },
+            { name: 'bounceRate' },
+            { name: 'averageSessionDuration' }
+          ],
+          dimensionFilter: {
+            orGroup: {
+              expressions: UTM_CAMPAIGNS.slice(0, 20).map(c => ({
+                filter: {
+                  fieldName: 'sessionCampaignName',
+                  stringFilter: { matchType: 'EXACT', value: c }
+                }
+              }))
+            }
+          },
+          limit: '10000'
+        };
+
+        // GA4 orGroup can hold up to 20; if more campaigns, batch
+        const batches = [];
+        const batchSize = 20;
+        for (let i = 0; i < UTM_CAMPAIGNS.length; i += batchSize) {
+          batches.push(UTM_CAMPAIGNS.slice(i, i + batchSize));
+        }
+
+        for (const batch of batches) {
+          const batchBody = {
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'sessionCampaignName' }],
+            metrics: [
+              { name: 'sessions' },
+              { name: 'bounceRate' },
+              { name: 'averageSessionDuration' }
+            ],
+            dimensionFilter: {
+              orGroup: {
+                expressions: batch.map(c => ({
+                  filter: {
+                    fieldName: 'sessionCampaignName',
+                    stringFilter: { matchType: 'EXACT', value: c }
+                  }
+                }))
+              }
+            },
+            limit: '10000'
+          };
+          const data = await apiPost(GA4_API, batchBody);
+          if (data && data.rows) {
+            data.rows.forEach(row => {
+              const name = row.dimensionValues[0].value;
+              UTM_DATA[name] = {
+                sessions: parseInt(row.metricValues[0].value) || 0,
+                bounceRate: parseFloat(row.metricValues[1].value) || 0,
+                avgDuration: parseFloat(row.metricValues[2].value) || 0
+              };
+            });
+          }
+        }
+
+        const found = Object.keys(UTM_DATA).length;
+        document.getElementById('utmDataInfo').textContent = 'Data loaded for ' + found + ' of ' + UTM_CAMPAIGNS.length + ' campaigns (' + startDate + ' → ' + endDate + ')';
+      } catch(e) {
+        console.error('UTM fetch error:', e);
+        document.getElementById('utmDataInfo').textContent = 'Error: ' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = '🔄 Fetch GA4 Data';
+        document.getElementById('utmLoadingBar').style.display = 'none';
+        renderUtmTable();
+      }
+    }
+
+    // Init UTM campaigns on load
+    loadUtmCampaigns();
+    renderUtmTable();
+
+    // UTM event listeners
+    document.getElementById('utmFetchBtn').addEventListener('click', fetchUtmData);
+    document.getElementById('utmSearch').addEventListener('input', renderUtmTable);
+
+    document.getElementById('utmAddBtn').addEventListener('click', () => {
+      document.getElementById('utmAddModal').style.display = 'flex';
+      document.getElementById('utmNewName').value = '';
+      setTimeout(() => document.getElementById('utmNewName').focus(), 50);
+    });
+    document.getElementById('utmAddCancel').addEventListener('click', () => {
+      document.getElementById('utmAddModal').style.display = 'none';
+    });
+    document.getElementById('utmAddConfirm').addEventListener('click', () => {
+      const name = document.getElementById('utmNewName').value.trim();
+      if (!name) { alert('Please enter a campaign name.'); return; }
+      if (!UTM_CAMPAIGNS) loadUtmCampaigns();
+      if (UTM_CAMPAIGNS.includes(name)) { alert('Campaign already in the list.'); return; }
+      UTM_CAMPAIGNS.unshift(name);
+      saveUtmCampaigns();
+      document.getElementById('utmAddModal').style.display = 'none';
+      renderUtmTable();
+    });
+    document.getElementById('utmNewName').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('utmAddConfirm').click();
+      if (e.key === 'Escape') document.getElementById('utmAddCancel').click();
+    });
+
+    document.getElementById('utmExportBtn').addEventListener('click', () => {
+      if (!UTM_CAMPAIGNS) return;
+      const search = (document.getElementById('utmSearch').value || '').toLowerCase();
+      const filtered = UTM_CAMPAIGNS.filter(c => !search || c.toLowerCase().includes(search));
+      exportCSV(filtered.map(c => {
+        const d = UTM_DATA[c] || {};
+        return { campaign: c, sessions: d.sessions || 0, bounceRate: d.bounceRate ? (d.bounceRate*100).toFixed(1)+'%' : '—', avgDuration: d.avgDuration ? formatDuration(d.avgDuration) : '—' };
+      }), [
+        { label: 'Campaign', get: r => r.campaign },
+        { label: 'Visitors', get: r => r.sessions },
+        { label: 'Bounce Rate', get: r => r.bounceRate },
+        { label: 'Visit Duration', get: r => r.avgDuration }
+      ], 'utm-campaigns-export.csv');
     });
 
   </script>
