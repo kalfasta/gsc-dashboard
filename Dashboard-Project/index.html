@@ -4825,29 +4825,49 @@
 
     function renderUtmTable() {
       if (!UTM_CAMPAIGNS) loadUtmCampaigns();
-      // Update datalist
-      const dl = document.getElementById('utmSearchList');
-      if (dl) dl.innerHTML = UTM_CAMPAIGNS.map(c => '<option value="' + escHtml(c) + '">').join('');
       const search = (document.getElementById('utmSearch').value || '').toLowerCase();
-      const filtered = UTM_CAMPAIGNS.filter(c => !search || c.toLowerCase().includes(search));
-      document.getElementById('utmResultCount').textContent = '(' + filtered.length + ')';
 
-      document.getElementById('utmBody').innerHTML = filtered.map((campaign, i) => {
-        const d = UTM_DATA[campaign];
+      // Build unified list: all Ahrefs rows + any UTM_CAMPAIGNS not in Ahrefs
+      // Section 1: rows that have Ahrefs data, sorted by visitors desc
+      const ahrefsRows = Object.entries(UTM_DATA)
+        .sort((a, b) => (b[1].sessions || 0) - (a[1].sessions || 0))
+        .map(([name, d]) => ({ name, d, hasData: true }));
+
+      // Section 2: campaigns in the list with no Ahrefs data
+      const ahrefsNames = new Set(Object.keys(UTM_DATA).map(k => k.toLowerCase()));
+      const noDataRows = UTM_CAMPAIGNS
+        .filter(c => !ahrefsNames.has(c.toLowerCase()))
+        .map(name => ({ name, d: null, hasData: false }));
+
+      // Merge and filter by search
+      const all = [...ahrefsRows, ...noDataRows]
+        .filter(r => !search || r.name.toLowerCase().includes(search));
+
+      // Update datalist with all known names
+      const dl = document.getElementById('utmSearchList');
+      if (dl) dl.innerHTML = all.map(r => '<option value="' + escHtml(r.name) + '">').join('');
+
+      document.getElementById('utmResultCount').textContent = '(' + all.length + ')';
+
+      document.getElementById('utmBody').innerHTML = all.map((row, i) => {
+        const { name, d } = row;
         const visitors = d ? d.sessions.toLocaleString() : '—';
-        // Ahrefs bounce_rate can be 0-1 (fraction) or 0-100 (percent) — normalise
         const bounceRaw = d && d.bounceRate != null ? d.bounceRate : null;
-        const bounceNorm = bounceRaw != null ? (bounceRaw > 1 ? bounceRaw / 100 : bounceRaw) : null;
-        const bounce = bounceNorm != null ? (bounceNorm * 100).toFixed(1) + '%' : '—';
+        // Ahrefs returns 0–100 already (session_bounce_rate), no need to normalise
+        const bounceNorm = bounceRaw != null ? bounceRaw / 100 : null;
+        const bounce = bounceRaw != null ? bounceRaw.toFixed(1) + '%' : '—';
         const dur = d && d.avgDuration != null ? formatDuration(d.avgDuration) : '—';
-        const bounceColor = bounceNorm != null ? (bounceNorm > 0.7 ? 'var(--red)' : bounceNorm > 0.5 ? 'var(--orange)' : 'var(--green)') : 'var(--muted)';
+        const bounceColor = bounceNorm != null ? (bounceNorm > 0.7 ? 'var(--red)' : bounceNorm > 0.5 ? 'var(--orange)' : 'var(--green)') : 'var(--text-muted)';
+        // Badge: mark if this campaign is also in the MC list
+        const inMc = UTM_CAMPAIGNS.some(c => c.toLowerCase() === name.toLowerCase());
+        const badge = inMc ? ' <span style="font-size:9px;background:var(--accent);color:#fff;border-radius:3px;padding:1px 4px;vertical-align:middle">MC</span>' : '';
         return '<tr>' +
-          '<td>' + (i + 1) + '</td>' +
-          '<td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(campaign) + '">' + escHtml(campaign) + '</td>' +
+          '<td style="color:var(--text-muted)">' + (i + 1) + '</td>' +
+          '<td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(name) + '">' + escHtml(name) + badge + '</td>' +
           '<td class="num" style="color:var(--accent)">' + visitors + '</td>' +
           '<td class="num" style="color:' + bounceColor + '">' + bounce + '</td>' +
           '<td class="num" style="color:var(--accent2)">' + dur + '</td>' +
-          '<td><button class="btn-sm btn-outline" style="padding:2px 8px;font-size:10px" onclick="deleteUtmCampaign(' + JSON.stringify(campaign) + ')">✕</button></td>' +
+          '<td><button class="btn-sm btn-outline" style="padding:2px 8px;font-size:10px" onclick="deleteUtmCampaign(' + JSON.stringify(name) + ')">✕</button></td>' +
           '</tr>';
       }).join('');
     }
@@ -4949,10 +4969,13 @@
           };
         });
 
-        const found = Object.keys(UTM_DATA).length;
-        const matched = UTM_CAMPAIGNS.filter(c => UTM_DATA[c] && UTM_DATA[c].sessions > 0).length;
+        const totalRows = rows.length;
+        const mcMatched = UTM_CAMPAIGNS.filter(c => {
+          const key = c.toLowerCase();
+          return Object.keys(UTM_DATA).some(k => k.toLowerCase() === key);
+        }).length;
         document.getElementById('utmDataInfo').textContent =
-          'Ahrefs: ' + rows.length + ' total rows → ' + matched + ' matched of ' + UTM_CAMPAIGNS.length + ' campaigns (' + startDate + ' → ' + endDate + ')';
+          'Ahrefs: ' + totalRows + ' UTM campaigns with traffic (' + mcMatched + ' match your MC list) · ' + startDate + ' → ' + endDate;
       } catch(e) {
         console.error('UTM Ahrefs fetch error:', e);
         document.getElementById('utmDataInfo').textContent = '❌ Error: ' + e.message;
