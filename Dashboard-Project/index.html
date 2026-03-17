@@ -4822,25 +4822,14 @@
 
       UTM_DATA = {};
       try {
-        // Build where filter: OR across all campaign names
-        const whereFilter = {
-          and: [{
-            and: [{
-              or: UTM_CAMPAIGNS.map(c => ({
-                field: 'utm_campaign',
-                is: ['eq', c]
-              }))
-            }]
-          }]
-        };
-
+        // Fetch ALL utm_campaign data (no where filter — match locally for reliability)
         const params = new URLSearchParams({
           from: fromISO,
           to: toISO,
+          limit: '1000',
           order_by: 'visitors:desc',
           project_id: '2197307',
-          utm_param: 'utm_campaign',
-          where: JSON.stringify(whereFilter)
+          utm_param: 'utm_campaign'
         });
 
         // Route through proxy worker to avoid CORS (same worker as Mailchimp)
@@ -4848,8 +4837,7 @@
         const resp = await fetch(proxyBase + '/ahrefs/v3/web-analytics/utm-params?' + params.toString(), {
           method: 'GET',
           headers: {
-            'Authorization': 'Bearer ' + apiKey,
-            'Content-Type': 'application/json'
+            'Authorization': 'Bearer ' + apiKey
           }
         });
 
@@ -4859,23 +4847,34 @@
         }
 
         const json = await resp.json();
-        const rows = json.utm_params || json.rows || json.data || [];
+        console.log('Ahrefs raw response:', JSON.stringify(json).slice(0, 2000));
+
+        // Try all known response shapes
+        const rows = json.utm_params || json.rows || json.data || (Array.isArray(json) ? json : []);
+        console.log('Ahrefs rows count:', rows.length, 'first row:', rows[0] ? JSON.stringify(rows[0]) : 'none');
+
+        // Build a lookup set for fast matching (lowercase for case-insensitive)
+        const campaignSet = new Set(UTM_CAMPAIGNS.map(c => c.toLowerCase()));
 
         rows.forEach(row => {
-          // Ahrefs returns utm_campaign as the dimension field name
-          const name = row.utm_campaign || row.name || '';
-          if (name) {
-            UTM_DATA[name] = {
-              sessions: row.visitors || 0,
-              bounceRate: row.bounce_rate != null ? row.bounce_rate : null,
-              avgDuration: row.visit_duration != null ? row.visit_duration : null
-            };
-          }
+          // Try all possible field names Ahrefs might use for utm_campaign value
+          const name = row.utm_campaign || row.value || row.name || row.param_value || row.dimension || '';
+          if (!name) return;
+          // Match against our list (case-insensitive)
+          const match = UTM_CAMPAIGNS.find(c => c.toLowerCase() === name.toLowerCase());
+          const key = match || name;
+          // Also store unmatched rows so we can see what Ahrefs actually has
+          UTM_DATA[key] = {
+            sessions: row.visitors || row.sessions || row.visits || 0,
+            bounceRate: row.bounce_rate != null ? row.bounce_rate : (row.bounceRate != null ? row.bounceRate : null),
+            avgDuration: row.visit_duration != null ? row.visit_duration : (row.avg_visit_duration != null ? row.avg_visit_duration : null)
+          };
         });
 
         const found = Object.keys(UTM_DATA).length;
+        const matched = UTM_CAMPAIGNS.filter(c => UTM_DATA[c] && UTM_DATA[c].sessions > 0).length;
         document.getElementById('utmDataInfo').textContent =
-          'Ahrefs data loaded: ' + found + ' of ' + UTM_CAMPAIGNS.length + ' campaigns (' + startDate + ' → ' + endDate + ')';
+          'Ahrefs: ' + rows.length + ' total rows → ' + matched + ' matched of ' + UTM_CAMPAIGNS.length + ' campaigns (' + startDate + ' → ' + endDate + ')';
       } catch(e) {
         console.error('UTM Ahrefs fetch error:', e);
         document.getElementById('utmDataInfo').textContent = '❌ Error: ' + e.message;
