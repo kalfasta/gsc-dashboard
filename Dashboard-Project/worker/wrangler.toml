@@ -7,7 +7,7 @@ compatibility_date = "2024-01-01"
 # Then replace PASTE_KV_ID_HERE with the namespace ID
 [[kv_namespaces]]
 binding = "RANKS_KV"
-id = "PASTE_KV_ID_HERE"
+id = "7a76f1688d374d6281ae90191b252d9c"
 
 # Cron: every 3 days at 7:00 UTC = 9:00 AM Greece (EET/winter)
 # Runs on days 1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31 of each month
