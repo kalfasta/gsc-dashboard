@@ -8,7 +8,7 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-MC-Key, X-Ahrefs-Key',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-MC-Key',
   'Access-Control-Max-Age': '86400'
 };
 
@@ -47,35 +47,6 @@ export default {
         });
       } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), {
-          status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    // ── Ahrefs proxy (/ahrefs/...) ─────────────────────────────────
-    if (path.startsWith('/ahrefs/')) {
-      const ahKey = request.headers.get('X-Ahrefs-Key') || '';
-      if (!ahKey) {
-        return new Response(JSON.stringify({ error: 'Missing X-Ahrefs-Key header' }), {
-          status: 400, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-        });
-      }
-      const ahPath = path.replace('/ahrefs', '/v3');
-      const ahUrl = `https://api.ahrefs.com${ahPath}${url.search}`;
-      try {
-        const resp = await fetch(ahUrl, {
-          method: request.method,
-          headers: {
-            'Authorization': 'Bearer ' + ahKey,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-        const body = await resp.text();
-        const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json', 'X-Debug-Target-URL': ahUrl };
-        return new Response(body, { status: resp.status, headers });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e.message, tried_url: ahUrl }), {
           status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         });
       }
