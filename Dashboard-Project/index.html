@@ -4504,10 +4504,11 @@
       if (!key) throw new Error('No Ahrefs API key configured.');
       const proxy = AH_DEFAULT_PROXY.replace(/\/+$/, '');
       const url = proxy + '/ahrefs' + endpoint;
+      console.log('[Ahrefs] →', url);
       const resp = await fetch(url, { headers: { 'X-Ahrefs-Key': key } });
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '');
-        throw new Error('Ahrefs API error ' + resp.status + (txt ? ': ' + txt.slice(0, 200) : ''));
+        throw new Error('Ahrefs API error ' + resp.status + ' on ' + endpoint.split('?')[0] + (txt ? ': ' + txt.slice(0, 300) : ''));
       }
       return resp.json();
     }
@@ -4526,15 +4527,19 @@
       const btn = document.getElementById('ahLoadBtn');
       const domain = document.getElementById('ahDomainInput')?.value.trim() || getAhDomain();
       btn.disabled = true; btn.textContent = 'Loading...';
-      const params = `&target=${encodeURIComponent(domain)}&mode=domain`;
+      const p = `&target=${encodeURIComponent(domain)}&mode=domain`;
       try {
-        const [overview, keywords, pages, backlinks] = await Promise.all([
-          ahApiFetch(`/site-explorer/overview?select=domain_rating,backlinks,refdomains,org_keywords,org_traffic${params}`),
-          ahApiFetch(`/site-explorer/organic-keywords?select=keyword,volume,position,traffic,cpc${params}&limit=100&order_by=traffic:desc`),
-          ahApiFetch(`/site-explorer/top-pages?select=url,sum_traffic,sum_traffic_value,top_keyword${params}&limit=100&order_by=sum_traffic:desc`),
-          ahApiFetch(`/site-explorer/all-backlinks?select=url_from,url_to,domain_rating_source,link_type${params}&limit=100&order_by=domain_rating_source:desc`)
-        ]);
-        AH_DATA = { overview, keywords: keywords.keywords || [], pages: pages.pages || [], backlinks: backlinks.refpages || [] };
+        // Sequential fetches so exact failing endpoint shows in error
+        const overview  = await ahApiFetch(`/site-explorer/overview?select=domain_rating,ahrefs_rank,backlinks,refdomains,org_keywords,org_traffic${p}`);
+        const keywords  = await ahApiFetch(`/site-explorer/organic-keywords?select=keyword,volume,position,traffic,cpc${p}&limit=100&order_by=traffic:desc`);
+        const pages     = await ahApiFetch(`/site-explorer/top-pages?select=url,sum_traffic,sum_traffic_value,top_keyword${p}&limit=100&order_by=sum_traffic:desc`);
+        const backlinks = await ahApiFetch(`/site-explorer/all-backlinks?select=url_from,url_to,domain_rating_source,link_type${p}&limit=100&order_by=domain_rating_source:desc`);
+        AH_DATA = {
+          overview,
+          keywords:  keywords.keywords  || keywords.data  || [],
+          pages:     pages.pages        || pages.data     || [],
+          backlinks: backlinks.refpages || backlinks.data  || backlinks.backlinks || []
+        };
         AH_LOADED = true;
         renderAhrefsTab();
         document.getElementById('ahLoadPrompt').style.display = 'none';
@@ -4545,7 +4550,7 @@
         console.error('Ahrefs fetch error:', e);
         btn.textContent = 'Error – Retry';
         btn.disabled = false;
-        alert('Failed to load Ahrefs data: ' + e.message);
+        alert('Failed to load Ahrefs data:\n' + e.message + '\n\nCheck the browser console (F12) for the exact URL attempted.');
       }
     }
 
