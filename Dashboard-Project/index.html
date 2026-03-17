@@ -4847,27 +4847,19 @@
         }
 
         const json = await resp.json();
-        console.log('Ahrefs raw response:', JSON.stringify(json).slice(0, 2000));
-
-        // Try all known response shapes
-        const rows = json.utm_params || json.rows || json.data || (Array.isArray(json) ? json : []);
-        console.log('Ahrefs rows count:', rows.length, 'first row:', rows[0] ? JSON.stringify(rows[0]) : 'none');
-
-        // Build a lookup set for fast matching (lowercase for case-insensitive)
-        const campaignSet = new Set(UTM_CAMPAIGNS.map(c => c.toLowerCase()));
+        // Ahrefs response: { stats: [ { utm_param, visitors, session_bounce_rate, avg_session_duration_sec } ] }
+        const rows = json.stats || json.utm_params || json.rows || json.data || (Array.isArray(json) ? json : []);
 
         rows.forEach(row => {
-          // Try all possible field names Ahrefs might use for utm_campaign value
-          const name = row.utm_campaign || row.value || row.name || row.param_value || row.dimension || '';
+          const name = row.utm_param || row.utm_campaign || row.value || row.name || '';
           if (!name) return;
           // Match against our list (case-insensitive)
           const match = UTM_CAMPAIGNS.find(c => c.toLowerCase() === name.toLowerCase());
           const key = match || name;
-          // Also store unmatched rows so we can see what Ahrefs actually has
           UTM_DATA[key] = {
-            sessions: row.visitors || row.sessions || row.visits || 0,
-            bounceRate: row.bounce_rate != null ? row.bounce_rate : (row.bounceRate != null ? row.bounceRate : null),
-            avgDuration: row.visit_duration != null ? row.visit_duration : (row.avg_visit_duration != null ? row.avg_visit_duration : null)
+            sessions: row.visitors || row.sessions || 0,
+            bounceRate: row.session_bounce_rate != null ? row.session_bounce_rate : (row.bounce_rate != null ? row.bounce_rate : null),
+            avgDuration: row.avg_session_duration_sec != null ? row.avg_session_duration_sec : (row.visit_duration != null ? row.visit_duration : null)
           };
         });
 
