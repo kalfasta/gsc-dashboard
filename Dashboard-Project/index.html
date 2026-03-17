@@ -994,6 +994,7 @@
       <div class="sub-tab active" data-subtab="qall">All Queries</div>
       <div class="sub-tab" data-subtab="qcore">Core Queries</div>
       <div class="sub-tab" data-subtab="qlhf">Low Hanging Fruits</div>
+      <div class="sub-tab" data-subtab="qranks">📍 Rank Tracker</div>
     </div>
 
     <!-- SUB: ALL QUERIES -->
@@ -1174,6 +1175,58 @@
           <div class="info" id="lhfPagInfo"></div>
           <div class="pages" id="lhfPagBtns"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- SUB: RANK TRACKER -->
+    <div class="sub-content" id="sub-qranks">
+      <!-- Controls -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px">
+        <button id="rankTestBtn" onclick="rankTestFirst()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer">🔬 Test First Keyword</button>
+        <button id="rankSyncBtn" onclick="rankSyncQueries()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 16px;font-size:13px;cursor:pointer">☁️ Sync Queries to Worker</button>
+        <button id="rankRefreshBtn" onclick="rankLoadData()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 16px;font-size:13px;cursor:pointer">🔄 Load Stored Data</button>
+        <span id="rankStatusMsg" style="font-size:12px;color:var(--text-muted)"></span>
+      </div>
+      <div id="rankLoadingBar" style="display:none;height:3px;background:linear-gradient(90deg,var(--accent),transparent);border-radius:2px;margin-bottom:12px;animation:pulse 1.5s infinite"></div>
+
+      <!-- Schedule info -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+        <div style="font-size:12px;color:var(--text-muted)">🕘 Auto-fetch: <strong style="color:var(--text)">every 3 days at 09:00 Greece time</strong></div>
+        <div style="font-size:12px;color:var(--text-muted)">📅 Last fetch: <strong id="rankLastFetch" style="color:var(--text)">—</strong></div>
+        <div style="font-size:12px;color:var(--text-muted)">📋 Tracking: <strong id="rankQueryCount" style="color:var(--text)">—</strong> keywords</div>
+        <div style="font-size:12px;color:var(--text-muted)">🌐 Domain: <strong style="color:var(--accent)">pricefox.gr</strong> · Greece · Google.gr</div>
+      </div>
+
+      <!-- Results table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+          <table class="data-table" id="rankTable">
+            <thead>
+              <tr>
+                <th style="width:28px">#</th>
+                <th>Keyword</th>
+                <th class="num" style="width:80px">Rank</th>
+                <th class="num" style="width:80px">Prev</th>
+                <th class="num" style="width:70px">Δ</th>
+                <th>URL Found</th>
+                <th style="width:110px">Checked</th>
+                <th class="num" style="width:60px">History</th>
+              </tr>
+            </thead>
+            <tbody id="rankBody">
+              <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Click "Load Stored Data" to see rank history, or "Test First Keyword" to run a live check.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- History chart (shown on click) -->
+      <div id="rankHistoryPanel" style="display:none;margin-top:16px" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px 0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)" id="rankHistoryTitle">Rank History</div>
+          <button onclick="document.getElementById('rankHistoryPanel').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="padding:16px"><canvas id="rankHistoryChart" height="120"></canvas></div>
       </div>
     </div>
   </div>
@@ -5188,6 +5241,213 @@
         document.getElementById('ahrefsOverviewLoading').style.display = 'none';
       }
     }
+
+    // ── RANK TRACKER ─────────────────────────────────────────────────────────
+    const RANK_WORKER = 'https://patient-bird-ad34.tkalfas.workers.dev';
+    let rankHistoryChart = null;
+
+    function rankStatus(msg, isError) {
+      const el = document.getElementById('rankStatusMsg');
+      if (el) { el.textContent = msg; el.style.color = isError ? 'var(--red)' : 'var(--text-muted)'; }
+    }
+
+    // Render the rank table from stored history data
+    function renderRankTable(history, queries) {
+      const body = document.getElementById('rankBody');
+      if (!body) return;
+      if (!queries || queries.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">No queries synced yet. Click "Sync Queries to Worker" first.</td></tr>';
+        return;
+      }
+
+      const rows = queries.map((kw, i) => {
+        const hist = (history[kw] || []).sort((a, b) => a.date > b.date ? 1 : -1);
+        const latest = hist[hist.length - 1];
+        const prev = hist[hist.length - 2];
+
+        const rankVal = latest ? latest.rank : null;
+        const prevVal = prev ? prev.rank : null;
+        const delta = (rankVal != null && prevVal != null) ? prevVal - rankVal : null;
+
+        const rankDisplay = rankVal != null
+          ? '<span style="font-weight:700;font-size:15px;color:' + rankColor(rankVal) + '">' + rankVal + '</span>'
+          : '<span style="color:var(--text-muted)">—</span>';
+        const prevDisplay = prevVal != null ? prevVal : '—';
+        let deltaDisplay = '—';
+        if (delta != null) {
+          const col = delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text-muted)';
+          const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '—';
+          deltaDisplay = '<span style="color:' + col + ';font-weight:600">' + arrow + ' ' + Math.abs(delta) + '</span>';
+        }
+
+        const urlDisplay = latest && latest.url
+          ? '<a href="' + latest.url + '" target="_blank" style="color:var(--accent);font-size:11px">' + latest.url.replace('https://www.pricefox.gr', '').replace('https://pricefox.gr', '') + '</a>'
+          : '<span style="color:var(--text-muted);font-size:11px">not found</span>';
+
+        const dateDisplay = latest ? latest.date : '—';
+        const histBtn = hist.length > 1
+          ? '<button onclick="showRankHistory(' + JSON.stringify(kw) + ')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;color:var(--accent)">📈 ' + hist.length + 'd</button>'
+          : '<span style="color:var(--text-muted);font-size:10px">—</span>';
+
+        return '<tr>' +
+          '<td style="color:var(--text-muted)">' + (i+1) + '</td>' +
+          '<td style="font-size:13px">' + escHtml(kw) + '</td>' +
+          '<td class="num">' + rankDisplay + '</td>' +
+          '<td class="num" style="color:var(--text-muted)">' + prevDisplay + '</td>' +
+          '<td class="num">' + deltaDisplay + '</td>' +
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + urlDisplay + '</td>' +
+          '<td style="font-size:11px;color:var(--text-muted)">' + dateDisplay + '</td>' +
+          '<td class="num">' + histBtn + '</td>' +
+          '</tr>';
+      });
+
+      body.innerHTML = rows.join('');
+    }
+
+    function rankColor(rank) {
+      if (rank <= 3) return 'var(--green)';
+      if (rank <= 10) return '#22d3ee';
+      if (rank <= 20) return 'var(--orange)';
+      return 'var(--red)';
+    }
+
+    // Show history chart for a specific keyword
+    function showRankHistory(kw) {
+      const panel = document.getElementById('rankHistoryPanel');
+      const title = document.getElementById('rankHistoryTitle');
+      const canvas = document.getElementById('rankHistoryChart');
+      if (!panel || !canvas) return;
+
+      // Get history from last loaded data (stored in window)
+      const hist = (window._rankHistory && window._rankHistory[kw] || [])
+        .sort((a, b) => a.date > b.date ? 1 : -1);
+      if (hist.length < 2) return;
+
+      title.textContent = '📈 Rank History: ' + kw;
+      panel.style.display = '';
+
+      if (rankHistoryChart) rankHistoryChart.destroy();
+      rankHistoryChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: hist.map(r => r.date),
+          datasets: [{
+            label: 'Rank',
+            data: hist.map(r => r.rank),
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,0.1)',
+            tension: 0.3,
+            pointRadius: 4,
+            fill: true,
+          }]
+        },
+        options: {
+          scales: {
+            y: { reverse: true, min: 1, title: { display: true, text: 'Position (lower = better)' }, grid: { color: '#2a2d3a' } },
+            x: { grid: { display: false } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Load stored data from Worker KV
+    async function rankLoadData() {
+      rankStatus('Loading from worker...');
+      document.getElementById('rankLoadingBar').style.display = '';
+      try {
+        const resp = await fetch(RANK_WORKER + '/ranks');
+        if (!resp.ok) throw new Error('Worker error ' + resp.status);
+        const data = await resp.json();
+        window._rankHistory = data.history || {};
+        const queries = data.queries || [];
+        document.getElementById('rankLastFetch').textContent = data.last_fetch
+          ? new Date(data.last_fetch).toLocaleString('el-GR') : 'Never';
+        document.getElementById('rankQueryCount').textContent = queries.length;
+        renderRankTable(window._rankHistory, queries);
+        rankStatus('Loaded · ' + Object.keys(window._rankHistory).length + ' keywords with data');
+      } catch (e) {
+        rankStatus('❌ ' + e.message, true);
+      } finally {
+        document.getElementById('rankLoadingBar').style.display = 'none';
+      }
+    }
+
+    // Push current core queries to Worker KV
+    async function rankSyncQueries() {
+      const queries = coreQueries;
+      if (!queries || queries.length === 0) { rankStatus('No core queries to sync', true); return; }
+      rankStatus('Syncing ' + queries.length + ' queries...');
+      document.getElementById('rankLoadingBar').style.display = '';
+      try {
+        const resp = await fetch(RANK_WORKER + '/ranks/queries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ queries })
+        });
+        if (!resp.ok) throw new Error('Worker error ' + resp.status);
+        const data = await resp.json();
+        document.getElementById('rankQueryCount').textContent = data.saved;
+        rankStatus('✅ Synced ' + data.saved + ' queries to worker. Cron will fetch ranks every 3 days at 09:00.');
+      } catch (e) {
+        rankStatus('❌ ' + e.message, true);
+      } finally {
+        document.getElementById('rankLoadingBar').style.display = 'none';
+      }
+    }
+
+    // Test a single keyword live
+    async function rankTestFirst() {
+      const queries = coreQueries;
+      if (!queries || queries.length === 0) { rankStatus('No core queries found', true); return; }
+      const kw = queries[0];
+      const btn = document.getElementById('rankTestBtn');
+      btn.disabled = true; btn.textContent = '⏳ Checking...';
+      rankStatus('Testing: "' + kw + '"...');
+      document.getElementById('rankLoadingBar').style.display = '';
+      try {
+        const resp = await fetch(RANK_WORKER + '/ranks/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: kw })
+        });
+        if (!resp.ok) throw new Error('Worker error ' + resp.status);
+        const r = await resp.json();
+        if (r.error) throw new Error(r.error);
+
+        const rankTxt = r.rank != null ? '#' + r.rank : 'not in top 100';
+        const urlTxt = r.url ? ' → ' + r.url : '';
+        rankStatus('✅ "' + kw + '" → Rank: ' + rankTxt + urlTxt);
+
+        // Show as a single test row
+        document.getElementById('rankBody').innerHTML =
+          '<tr style="background:rgba(99,102,241,0.08)">' +
+          '<td>—</td>' +
+          '<td style="font-size:13px">' + escHtml(kw) + ' <span style="font-size:10px;color:var(--accent)">[TEST]</span></td>' +
+          '<td class="num"><span style="font-weight:700;font-size:15px;color:' + rankColor(r.rank || 999) + '">' + (r.rank || '—') + '</span></td>' +
+          '<td class="num" style="color:var(--text-muted)">—</td>' +
+          '<td class="num">—</td>' +
+          '<td style="font-size:11px"><a href="' + (r.url || '#') + '" target="_blank" style="color:var(--accent)">' + (r.url || 'not found') + '</a></td>' +
+          '<td style="font-size:11px;color:var(--text-muted)">' + new Date().toLocaleDateString('el-GR') + '</td>' +
+          '<td>—</td>' +
+          '</tr>';
+      } catch (e) {
+        rankStatus('❌ ' + e.message, true);
+      } finally {
+        btn.disabled = false; btn.textContent = '🔬 Test First Keyword';
+        document.getElementById('rankLoadingBar').style.display = 'none';
+      }
+    }
+
+    // Auto-load rank data when Rank Tracker sub-tab is clicked
+    document.addEventListener('click', e => {
+      if (e.target.dataset && e.target.dataset.subtab === 'qranks' && !window._rankDataLoaded) {
+        window._rankDataLoaded = true;
+        rankLoadData();
+      }
+    });
 
     document.getElementById('utmExportBtn').addEventListener('click', () => {
       if (!UTM_CAMPAIGNS) return;
