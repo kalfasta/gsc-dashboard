@@ -1453,7 +1453,7 @@
 
   <!-- TAB: ADS -->
   <div class="tab-content" id="tab-ads">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="adsKpiGrid">
       <div class="kpi">
         <div class="kpi-label">Total Ad Spend</div>
         <div class="kpi-value" style="color:var(--yellow)" id="kpiAdSpend">—</div>
@@ -1469,17 +1469,67 @@
         <div class="kpi-value" style="color:var(--accent2)" id="kpiAdImpr">—</div>
         <div class="kpi-sub" id="kpiAdImprChg"></div>
       </div>
+      <div class="kpi">
+        <div class="kpi-label">Ad Sessions</div>
+        <div class="kpi-value" style="color:var(--purple)" id="kpiAdSessions">—</div>
+        <div class="kpi-sub" id="kpiAdSessionsChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg CPC</div>
+        <div class="kpi-value" style="color:var(--orange)" id="kpiAdAvgCpc">—</div>
+        <div class="kpi-sub" id="kpiAdAvgCpcChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg CTR</div>
+        <div class="kpi-value" style="color:var(--green)" id="kpiAdAvgCtr">—</div>
+        <div class="kpi-sub" id="kpiAdAvgCtrChg"></div>
+      </div>
     </div>
 
     <!-- ADS SUB-TABS -->
     <div class="sub-tabs" id="adsSubTabs">
-      <div class="sub-tab active" data-subtab="campaigns">Campaigns</div>
+      <div class="sub-tab active" data-subtab="adsoverview">Overview</div>
+      <div class="sub-tab" data-subtab="campaigns">Campaigns</div>
       <div class="sub-tab" data-subtab="searchterms">Search Terms</div>
       <div class="sub-tab" data-subtab="adgroups">Ad Groups</div>
     </div>
 
+    <!-- SUB: ADS OVERVIEW -->
+    <div class="sub-content active" id="sub-adsoverview">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <h2>Daily Ad Spend</h2>
+          <div style="height:280px"><canvas id="adsDailySpendChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Daily Clicks & Impressions</h2>
+          <div style="height:280px"><canvas id="adsDailyClicksChart"></canvas></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <h2>Top 10 Campaigns by Spend</h2>
+          <div style="height:320px"><canvas id="adsTopSpendChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Top 10 Campaigns by Clicks</h2>
+          <div style="height:320px"><canvas id="adsTopClicksChart"></canvas></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <h2>Cost per Conversion by Campaign</h2>
+          <div style="height:320px"><canvas id="adsCpaChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>CTR by Campaign</h2>
+          <div style="height:320px"><canvas id="adsCtrChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
     <!-- SUB: CAMPAIGNS -->
-    <div class="sub-content active" id="sub-campaigns">
+    <div class="sub-content" id="sub-campaigns">
       <div class="filter-bar">
         <h3>Filter Campaigns</h3>
         <div class="filter-row">
@@ -1789,6 +1839,7 @@
     let GA4_SECTIONS = null;
     let adsState = { page: 1, sortCol: 'cost', sortDir: 'desc', filtered: [] };
     let ADS_DATA = null;
+    let ADS_DAILY = null;
     let ADS_SEARCH_TERMS = null;
     let ADS_AD_GROUPS = null;
     let stState = { page: 1, sortCol: 'clicks', sortDir: 'desc', filtered: [] };
@@ -2108,6 +2159,28 @@
       });
     }
 
+    function ga4AdsDailyQuery(startDate, endDate) {
+      return apiPost(GA4_API, {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'date' }],
+        metrics: [
+          { name: 'advertiserAdCost' },
+          { name: 'advertiserAdClicks' },
+          { name: 'advertiserAdImpressions' },
+          { name: 'sessions' },
+          { name: 'conversions' }
+        ],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'sessionGoogleAdsCampaignName',
+            stringFilter: { matchType: 'FULL_REGEXP', value: '.+' }
+          }
+        },
+        orderBys: [{ dimension: { dimensionName: 'date' } }],
+        limit: '10000'
+      });
+    }
+
     function ga4AdsAdGroupsQuery(startDate, endDate, campaignName) {
       return apiPost(GA4_API, {
         dateRanges: [{ startDate, endDate }],
@@ -2250,18 +2323,19 @@
           /* 11 */ ga4Geographic(startDate, endDate).catch(() => null),
           /* 12 */ ga4ChannelComparison(startDate, endDate).catch(() => null),
           /* 13 */ ga4NewVsReturning(startDate, endDate).catch(() => null),
-          /* 14 */ ga4OrganicDaily(startDate, endDate).catch(() => null)
+          /* 14 */ ga4OrganicDaily(startDate, endDate).catch(() => null),
+          /* 15 */ ga4AdsDailyQuery(startDate, endDate).catch(e => { console.error('GA4 Ads Daily error:', e); return null; })
         ];
 
         if (isComparing) {
           promises.push(
-            /* 15 */ gscQuery(prevStartDate, prevEndDate, []),
-            /* 16 */ gscQuery(prevStartDate, prevEndDate, ['query']),
-            /* 17 */ gscQuery(prevStartDate, prevEndDate, ['page']),
-            /* 18 */ gscQuery(prevStartDate, prevEndDate, ['date']),
-            /* 19 */ ga4TotalQuery(prevStartDate, prevEndDate).catch(() => null),
-            /* 20 */ ga4DailyBySourceQuery(prevStartDate, prevEndDate).catch(() => null),
-            /* 21 */ ga4OrganicOverview(prevStartDate, prevEndDate).catch(() => null)
+            /* 16 */ gscQuery(prevStartDate, prevEndDate, []),
+            /* 17 */ gscQuery(prevStartDate, prevEndDate, ['query']),
+            /* 18 */ gscQuery(prevStartDate, prevEndDate, ['page']),
+            /* 19 */ gscQuery(prevStartDate, prevEndDate, ['date']),
+            /* 20 */ ga4TotalQuery(prevStartDate, prevEndDate).catch(() => null),
+            /* 21 */ ga4DailyBySourceQuery(prevStartDate, prevEndDate).catch(() => null),
+            /* 22 */ ga4OrganicOverview(prevStartDate, prevEndDate).catch(() => null)
           );
         }
 
@@ -2282,16 +2356,17 @@
         const ga4ChannelCur = results[12];
         const ga4NvRCur = results[13];
         const ga4OrgDailyCur = results[14];
+        const adsDailyCur = results[15];
 
         let totalsPrev = null, queriesPrev = null, pagesPrev = null, dailyPrev = null, ga4TotalsPrev = null, ga4DailyBySrcPrev = null, ga4OrgOverviewPrev = null;
         if (isComparing) {
-          totalsPrev = results[15];
-          queriesPrev = results[16];
-          pagesPrev = results[17];
-          dailyPrev = results[18];
-          ga4TotalsPrev = results[19];
-          ga4DailyBySrcPrev = results[20];
-          ga4OrgOverviewPrev = results[21];
+          totalsPrev = results[16];
+          queriesPrev = results[17];
+          pagesPrev = results[18];
+          dailyPrev = results[19];
+          ga4TotalsPrev = results[20];
+          ga4DailyBySrcPrev = results[21];
+          ga4OrgOverviewPrev = results[22];
         }
 
         // Process GSC totals
@@ -2531,7 +2606,23 @@
             };
           }).filter(r => r.name !== '(not set)');
         }
+        function processAdsDailyData(data) {
+          if (!data || !data.rows) return [];
+          return data.rows.map(r => {
+            const date = r.dimensionValues[0].value;
+            return {
+              date,
+              cost: parseFloat(r.metricValues[0].value) || 0,
+              clicks: parseInt(r.metricValues[1].value) || 0,
+              impressions: parseInt(r.metricValues[2].value) || 0,
+              sessions: parseInt(r.metricValues[3].value) || 0,
+              conversions: parseFloat(r.metricValues[4].value) || 0
+            };
+          }).sort((a, b) => a.date.localeCompare(b.date));
+        }
+
         ADS_DATA = processAdsData(adsCur);
+        ADS_DAILY = processAdsDailyData(adsDailyCur);
 
         renderAll();
       } catch (e) {
@@ -2598,7 +2689,7 @@
       applyCoreFilter();
       applyLHFFilter();
       applyPageFilter();
-      if (ADS_DATA) { applyAdsFilter(); populateCampaignSelects(); }
+      if (ADS_DATA) { applyAdsFilter(); populateCampaignSelects(); renderAdsOverviewCharts(); }
       document.getElementById('qCount').textContent = '(' + DATA.all_keywords.length.toLocaleString() + ')';
       document.getElementById('pCount').textContent = '(' + DATA.all_pages.length.toLocaleString() + ')';
       const orgSess = GA4_SECTIONS && GA4_SECTIONS.orgOverview ? GA4_SECTIONS.orgOverview.sessions : 0;
@@ -3345,9 +3436,14 @@
       const totalImpr = data.reduce((s, r) => s + r.impressions, 0);
       const totalSessions = data.reduce((s, r) => s + (r.sessions || 0), 0);
       const totalConv = data.reduce((s, r) => s + r.conversions, 0);
+      const avgCpc = totalClicks > 0 ? (totalSpend / totalClicks) : 0;
+      const avgCtr = totalImpr > 0 ? (totalClicks / totalImpr * 100) : 0;
       document.getElementById('kpiAdSpend').textContent = '\u20AC' + totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       document.getElementById('kpiAdClicks').textContent = totalClicks.toLocaleString();
       document.getElementById('kpiAdImpr').textContent = totalImpr.toLocaleString();
+      document.getElementById('kpiAdSessions').textContent = totalSessions.toLocaleString();
+      document.getElementById('kpiAdAvgCpc').textContent = '\u20AC' + avgCpc.toFixed(2);
+      document.getElementById('kpiAdAvgCtr').textContent = avgCtr.toFixed(2) + '%';
     }
 
     function sortAdsData(data, col, dir) {
@@ -3360,6 +3456,129 @@
 
     function renderAdsTable() {
       renderAdsTableWithLinks();
+    }
+
+    // ===================== ADS OVERVIEW CHARTS =====================
+    let adsCharts = {};
+    function renderAdsOverviewCharts() {
+      Object.values(adsCharts).forEach(c => c.destroy());
+      adsCharts = {};
+
+      // Daily Spend Chart
+      if (ADS_DAILY && ADS_DAILY.length > 0) {
+        const labels = ADS_DAILY.map(d => {
+          const s = d.date;
+          return s.substring(4, 6) + '/' + s.substring(6, 8);
+        });
+        const ctx1 = document.getElementById('adsDailySpendChart').getContext('2d');
+        adsCharts.dailySpend = new Chart(ctx1, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Spend (\u20AC)',
+              data: ADS_DAILY.map(d => d.cost.toFixed(2)),
+              borderColor: '#eab308',
+              backgroundColor: 'rgba(234,179,8,0.1)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', callback: v => '\u20AC' + v }, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+        });
+
+        // Daily Clicks & Impressions
+        const ctx2 = document.getElementById('adsDailyClicksChart').getContext('2d');
+        adsCharts.dailyClicks = new Chart(ctx2, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Clicks', data: ADS_DAILY.map(d => d.clicks), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: false, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
+              { label: 'Impressions', data: ADS_DAILY.map(d => d.impressions), borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', fill: false, tension: 0.3, pointRadius: 2, yAxisID: 'y1' }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { type: 'linear', position: 'left', ticks: { color: '#6366f1' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y1: { type: 'linear', position: 'right', ticks: { color: '#22d3ee' }, grid: { drawOnChartArea: false } } } }
+        });
+      }
+
+      // Top 10 Campaigns by Spend
+      if (ADS_DATA && ADS_DATA.length > 0) {
+        const top10spend = [...ADS_DATA].sort((a, b) => b.cost - a.cost).slice(0, 10);
+        const ctx3 = document.getElementById('adsTopSpendChart').getContext('2d');
+        adsCharts.topSpend = new Chart(ctx3, {
+          type: 'bar',
+          data: {
+            labels: top10spend.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
+            datasets: [{
+              label: 'Spend (\u20AC)',
+              data: top10spend.map(r => r.cost),
+              backgroundColor: 'rgba(234,179,8,0.7)',
+              borderColor: '#eab308',
+              borderWidth: 1
+            }]
+          },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '\u20AC' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+        });
+
+        // Top 10 by Clicks
+        const top10clicks = [...ADS_DATA].sort((a, b) => b.clicks - a.clicks).slice(0, 10);
+        const ctx4 = document.getElementById('adsTopClicksChart').getContext('2d');
+        adsCharts.topClicks = new Chart(ctx4, {
+          type: 'bar',
+          data: {
+            labels: top10clicks.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
+            datasets: [{
+              label: 'Clicks',
+              data: top10clicks.map(r => r.clicks),
+              backgroundColor: 'rgba(99,102,241,0.7)',
+              borderColor: '#6366f1',
+              borderWidth: 1
+            }]
+          },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+        });
+
+        // CPA by Campaign (only campaigns with conversions > 0)
+        const withConv = ADS_DATA.filter(r => r.conversions > 0).map(r => ({ ...r, cpa: r.cost / r.conversions })).sort((a, b) => a.cpa - b.cpa).slice(0, 10);
+        const ctx5 = document.getElementById('adsCpaChart').getContext('2d');
+        if (withConv.length > 0) {
+          adsCharts.cpa = new Chart(ctx5, {
+            type: 'bar',
+            data: {
+              labels: withConv.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
+              datasets: [{
+                label: 'Cost per Conversion (\u20AC)',
+                data: withConv.map(r => r.cpa.toFixed(2)),
+                backgroundColor: withConv.map(r => r.cpa < 10 ? 'rgba(34,197,94,0.7)' : r.cpa < 30 ? 'rgba(234,179,8,0.7)' : 'rgba(239,68,68,0.7)'),
+                borderWidth: 1
+              }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '\u20AC' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+          });
+        }
+
+        // CTR by Campaign (top 10 by clicks, showing CTR)
+        const top10ctr = [...ADS_DATA].filter(r => r.impressions > 100).sort((a, b) => b.ctr - a.ctr).slice(0, 10);
+        const ctx6 = document.getElementById('adsCtrChart').getContext('2d');
+        if (top10ctr.length > 0) {
+          adsCharts.ctr = new Chart(ctx6, {
+            type: 'bar',
+            data: {
+              labels: top10ctr.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
+              datasets: [{
+                label: 'CTR (%)',
+                data: top10ctr.map(r => r.ctr),
+                backgroundColor: 'rgba(34,197,94,0.7)',
+                borderColor: '#22c55e',
+                borderWidth: 1
+              }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+          });
+        }
+      }
     }
 
     // ===================== ADS SUB-TABS =====================
