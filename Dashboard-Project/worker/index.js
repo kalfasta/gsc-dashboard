@@ -51,35 +51,48 @@ async function runRankCheck(env) {
 }
 
 async function fetchSerpRank(query) {
-  const params = new URLSearchParams({
-    q: query,
-    location: 'Greece',
-    gl: 'gr',
-    hl: 'el',
-    google_domain: 'google.gr',
-    api_key: SERP_API_KEY,
-    num: '100',
-    output: 'json',
-  });
-  const resp = await fetch('https://serpapi.com/search?' + params.toString());
-  if (!resp.ok) throw new Error('SerpAPI ' + resp.status);
-  const json = await resp.json();
+  // Google returns 10 results per page — paginate up to 5 pages (top 50)
+  for (let page = 0; page < 5; page++) {
+    const start = page * 10;
+    const params = new URLSearchParams({
+      q: query,
+      gl: 'gr',
+      hl: 'el',
+      google_domain: 'google.gr',
+      api_key: SERP_API_KEY,
+      num: '10',
+      start: String(start),
+      output: 'json',
+    });
+    const resp = await fetch('https://serpapi.com/search?' + params.toString());
+    if (!resp.ok) throw new Error('SerpAPI ' + resp.status);
+    const json = await resp.json();
 
-  const organic = json.organic_results || [];
-  // Find pricefox.gr — match on link or displayed_link
-  const hit = organic.find(r =>
-    (r.link && r.link.includes(TARGET_DOMAIN)) ||
-    (r.displayed_link && r.displayed_link.includes(TARGET_DOMAIN))
-  );
+    const organic = json.organic_results || [];
+    // Find pricefox.gr — match on link or displayed_link
+    const hit = organic.find(r =>
+      (r.link && r.link.includes(TARGET_DOMAIN)) ||
+      (r.displayed_link && r.displayed_link.includes(TARGET_DOMAIN))
+    );
 
-  if (hit) {
-    return {
-      rank: hit.position,
-      url: hit.link || '',
-      title: hit.title || '',
-      snippet: (hit.snippet || '').slice(0, 120),
-    };
+    if (hit) {
+      // position resets to 1-10 per page, so add the page offset for real rank
+      const realRank = start + hit.position;
+      return {
+        rank: realRank,
+        url: hit.link || '',
+        title: hit.title || '',
+        snippet: (hit.snippet || '').slice(0, 120),
+      };
+    }
+
+    // If no more pages, stop early
+    if (!json.serpapi_pagination?.next) break;
+
+    // Small delay between pages to respect rate limits
+    await new Promise(r => setTimeout(r, 600));
   }
+
   return { rank: null, url: '', title: '', snippet: '' };
 }
 
