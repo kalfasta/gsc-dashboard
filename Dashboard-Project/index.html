@@ -4506,9 +4506,12 @@
       const url = proxy + '/ahrefs' + endpoint;
       console.log('[Ahrefs] →', url);
       const resp = await fetch(url, { headers: { 'X-Ahrefs-Key': key } });
+      const debugTarget = resp.headers.get('X-Debug-Target-URL') || '';
+      if (debugTarget) console.log('[Ahrefs] target →', debugTarget);
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '');
-        throw new Error('Ahrefs API error ' + resp.status + ' on ' + endpoint.split('?')[0] + (txt ? ': ' + txt.slice(0, 300) : ''));
+        const targetInfo = debugTarget ? '\nAhrefs URL: ' + debugTarget : '';
+        throw new Error('Ahrefs API error ' + resp.status + ' on ' + endpoint.split('?')[0] + targetInfo + (txt ? '\n' + txt.slice(0, 300) : ''));
       }
       return resp.json();
     }
@@ -4529,8 +4532,8 @@
       btn.disabled = true; btn.textContent = 'Loading...';
       const p = `&target=${encodeURIComponent(domain)}&mode=domain`;
       try {
-        // Sequential fetches so exact failing endpoint shows in error
-        const overview  = await ahApiFetch(`/site-explorer/overview?select=domain_rating,ahrefs_rank,backlinks,refdomains,org_keywords,org_traffic${p}`);
+        // Sequential fetches — correct Ahrefs v3 field names
+        const overview  = await ahApiFetch(`/site-explorer/overview?select=domain_rating,ahrefs_rank,backlinks,referring_domains,organic_keywords,organic_traffic${p}`);
         const keywords  = await ahApiFetch(`/site-explorer/organic-keywords?select=keyword,volume,position,traffic,cpc${p}&limit=100&order_by=traffic:desc`);
         const pages     = await ahApiFetch(`/site-explorer/top-pages?select=url,sum_traffic,sum_traffic_value,top_keyword${p}&limit=100&order_by=sum_traffic:desc`);
         const backlinks = await ahApiFetch(`/site-explorer/all-backlinks?select=url_from,url_to,domain_rating_source,link_type${p}&limit=100&order_by=domain_rating_source:desc`);
@@ -4560,9 +4563,9 @@
       if (ov) {
         document.getElementById('ahDR').textContent = ov.domain_rating ?? '—';
         document.getElementById('ahBacklinks').textContent = fmtNum(ov.backlinks);
-        document.getElementById('ahRefDomains').textContent = fmtNum(ov.refdomains);
-        document.getElementById('ahOrgKw').textContent = fmtNum(ov.org_keywords);
-        document.getElementById('ahOrgTraffic').textContent = fmtNum(ov.org_traffic);
+        document.getElementById('ahRefDomains').textContent = fmtNum(ov.referring_domains ?? ov.refdomains);
+        document.getElementById('ahOrgKw').textContent = fmtNum(ov.organic_keywords ?? ov.org_keywords);
+        document.getElementById('ahOrgTraffic').textContent = fmtNum(ov.organic_traffic ?? ov.org_traffic);
         document.getElementById('ahCount').textContent = ov.domain_rating ?? '';
       }
       ahKwState.filtered = filterAhList(AH_DATA.keywords, document.getElementById('ahKwSearch').value);

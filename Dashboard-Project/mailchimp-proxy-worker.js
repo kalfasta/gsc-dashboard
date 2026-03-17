@@ -72,12 +72,10 @@ export default {
           }
         });
         const body = await resp.text();
-        return new Response(body, {
-          status: resp.status,
-          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
-        });
+        const headers = { ...CORS_HEADERS, 'Content-Type': 'application/json', 'X-Debug-Target-URL': ahUrl };
+        return new Response(body, { status: resp.status, headers });
       } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), {
+        return new Response(JSON.stringify({ error: e.message, tried_url: ahUrl }), {
           status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         });
       }
