@@ -4843,7 +4843,9 @@
           where: JSON.stringify(whereFilter)
         });
 
-        const resp = await fetch('https://api.ahrefs.com/v3/web-analytics/utm-params?' + params.toString(), {
+        // Route through proxy worker to avoid CORS (same worker as Mailchimp)
+        const proxyBase = getMcProxyUrl().replace(/\/+$/, '');
+        const resp = await fetch(proxyBase + '/ahrefs/v3/web-analytics/utm-params?' + params.toString(), {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer ' + apiKey,
