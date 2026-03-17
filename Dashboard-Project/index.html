@@ -1796,10 +1796,17 @@
       <!-- SUB: UTM CAMPAIGNS -->
       <div class="sub-content" id="sub-mcutm">
         <div class="filter-bar">
-          <h3>UTM Campaign Tracker</h3>
+          <h3>UTM Campaign Tracker <span style="color:var(--muted);font-size:10px;font-weight:400">via Ahrefs Web Analytics</span></h3>
           <div class="filter-row">
+            <div class="filter-group">
+              <label>Ahrefs API Key</label>
+              <div style="display:flex;gap:4px">
+                <input type="password" id="utmAhrefsKey" placeholder="Bearer token..." style="width:200px" value="">
+                <button class="btn-sm btn-outline" onclick="document.getElementById('utmAhrefsKey').type=document.getElementById('utmAhrefsKey').type==='password'?'text':'password'" style="white-space:nowrap;padding:4px 8px">👁</button>
+              </div>
+            </div>
             <div class="filter-group"><label>Search</label><input type="text" id="utmSearch" placeholder="Filter campaigns..." list="utmSearchList"><datalist id="utmSearchList"></datalist></div>
-            <button class="btn-sm" id="utmFetchBtn" style="background:var(--green)">🔄 Fetch GA4 Data</button>
+            <button class="btn-sm" id="utmFetchBtn" style="background:var(--green)">🔄 Fetch Ahrefs Data</button>
             <button class="btn-sm export-btn" id="utmExportBtn">Export CSV</button>
             <button class="btn-sm" id="utmAddBtn" style="background:var(--accent2)">＋ Add Campaign</button>
           </div>
@@ -1823,7 +1830,7 @@
         <div class="card" style="position:relative">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <h2>UTM Campaigns <span class="count" id="utmResultCount"></span></h2>
-            <span style="font-size:11px;color:var(--muted)" id="utmDataInfo">Click "Fetch GA4 Data" to load metrics for the selected date range.</span>
+            <span style="font-size:11px;color:var(--muted)" id="utmDataInfo">Click "Fetch Ahrefs Data" to load metrics for the selected date range.</span>
           </div>
           <div id="utmLoadingBar" style="display:none;text-align:center;padding:20px;color:var(--muted)">⏳ Fetching GA4 data for all campaigns...</div>
           <div style="overflow-x:auto">
@@ -4742,9 +4749,12 @@
       document.getElementById('utmBody').innerHTML = filtered.map((campaign, i) => {
         const d = UTM_DATA[campaign];
         const visitors = d ? d.sessions.toLocaleString() : '—';
-        const bounce = d ? (d.bounceRate * 100).toFixed(1) + '%' : '—';
-        const dur = d ? formatDuration(d.avgDuration) : '—';
-        const bounceColor = d ? (d.bounceRate > 0.7 ? 'var(--red)' : d.bounceRate > 0.5 ? 'var(--orange)' : 'var(--green)') : 'var(--muted)';
+        // Ahrefs bounce_rate can be 0-1 (fraction) or 0-100 (percent) — normalise
+        const bounceRaw = d && d.bounceRate != null ? d.bounceRate : null;
+        const bounceNorm = bounceRaw != null ? (bounceRaw > 1 ? bounceRaw / 100 : bounceRaw) : null;
+        const bounce = bounceNorm != null ? (bounceNorm * 100).toFixed(1) + '%' : '—';
+        const dur = d && d.avgDuration != null ? formatDuration(d.avgDuration) : '—';
+        const bounceColor = bounceNorm != null ? (bounceNorm > 0.7 ? 'var(--red)' : bounceNorm > 0.5 ? 'var(--orange)' : 'var(--green)') : 'var(--muted)';
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
           '<td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(campaign) + '">' + escHtml(campaign) + '</td>' +
@@ -4771,9 +4781,32 @@
       renderUtmTable();
     }
 
+    function getAhrefsKey() {
+      const el = document.getElementById('utmAhrefsKey');
+      const val = el ? el.value.trim() : '';
+      if (val) { localStorage.setItem('pricefox_ahrefs_key', val); return val; }
+      return localStorage.getItem('pricefox_ahrefs_key') || '';
+    }
+
+    // Pre-fill Ahrefs key from localStorage on load (fallback to known key)
+    (function() {
+      const DEFAULT_AHREFS_KEY = 'svkB1seekuTuec5YRX32wCpg9o-VWdAl8syjiwHG';
+      const saved = localStorage.getItem('pricefox_ahrefs_key') || DEFAULT_AHREFS_KEY;
+      if (saved) {
+        const el = document.getElementById('utmAhrefsKey');
+        if (el) el.value = saved;
+        if (!localStorage.getItem('pricefox_ahrefs_key')) {
+          localStorage.setItem('pricefox_ahrefs_key', DEFAULT_AHREFS_KEY);
+        }
+      }
+    })();
+
     async function fetchUtmData() {
-      if (!accessToken) { alert('Please sign in with Google first.'); return; }
       if (!UTM_CAMPAIGNS || UTM_CAMPAIGNS.length === 0) { alert('No campaigns in the list.'); return; }
+
+      const apiKey = getAhrefsKey();
+      if (!apiKey) { alert('Please enter your Ahrefs API key.'); return; }
+
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
       if (!startDate || !endDate) { alert('Please select a date range first.'); return; }
@@ -4781,80 +4814,71 @@
       const btn = document.getElementById('utmFetchBtn');
       btn.disabled = true; btn.textContent = '⏳ Fetching...';
       document.getElementById('utmLoadingBar').style.display = '';
-      document.getElementById('utmDataInfo').textContent = 'Fetching...';
+      document.getElementById('utmDataInfo').textContent = 'Fetching from Ahrefs...';
+
+      // Convert YYYY-MM-DD to ISO 8601 with time
+      const fromISO = startDate + 'T00:00:00Z';
+      const toISO = endDate + 'T23:59:59Z';
 
       UTM_DATA = {};
       try {
-        // Fetch all campaigns in one batch query using GA4 with dimension filter
-        const body = {
-          dateRanges: [{ startDate, endDate }],
-          dimensions: [{ name: 'sessionCampaignName' }],
-          metrics: [
-            { name: 'sessions' },
-            { name: 'bounceRate' },
-            { name: 'averageSessionDuration' }
-          ],
-          dimensionFilter: {
-            orGroup: {
-              expressions: UTM_CAMPAIGNS.slice(0, 20).map(c => ({
-                filter: {
-                  fieldName: 'sessionCampaignName',
-                  stringFilter: { matchType: 'EXACT', value: c }
-                }
+        // Build where filter: OR across all campaign names
+        const whereFilter = {
+          and: [{
+            and: [{
+              or: UTM_CAMPAIGNS.map(c => ({
+                field: 'utm_campaign',
+                is: ['eq', c]
               }))
-            }
-          },
-          limit: '10000'
+            }]
+          }]
         };
 
-        // GA4 orGroup can hold up to 20; if more campaigns, batch
-        const batches = [];
-        const batchSize = 20;
-        for (let i = 0; i < UTM_CAMPAIGNS.length; i += batchSize) {
-          batches.push(UTM_CAMPAIGNS.slice(i, i + batchSize));
+        const params = new URLSearchParams({
+          from: fromISO,
+          to: toISO,
+          order_by: 'visitors:desc',
+          project_id: '2197307',
+          utm_param: 'utm_campaign',
+          where: JSON.stringify(whereFilter)
+        });
+
+        const resp = await fetch('https://api.ahrefs.com/v3/web-analytics/utm-params?' + params.toString(), {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + apiKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!resp.ok) {
+          const txt = await resp.text().catch(() => '');
+          throw new Error('Ahrefs API error ' + resp.status + (txt ? ': ' + txt : ''));
         }
 
-        for (const batch of batches) {
-          const batchBody = {
-            dateRanges: [{ startDate, endDate }],
-            dimensions: [{ name: 'sessionCampaignName' }],
-            metrics: [
-              { name: 'sessions' },
-              { name: 'bounceRate' },
-              { name: 'averageSessionDuration' }
-            ],
-            dimensionFilter: {
-              orGroup: {
-                expressions: batch.map(c => ({
-                  filter: {
-                    fieldName: 'sessionCampaignName',
-                    stringFilter: { matchType: 'EXACT', value: c }
-                  }
-                }))
-              }
-            },
-            limit: '10000'
-          };
-          const data = await apiPost(GA4_API, batchBody);
-          if (data && data.rows) {
-            data.rows.forEach(row => {
-              const name = row.dimensionValues[0].value;
-              UTM_DATA[name] = {
-                sessions: parseInt(row.metricValues[0].value) || 0,
-                bounceRate: parseFloat(row.metricValues[1].value) || 0,
-                avgDuration: parseFloat(row.metricValues[2].value) || 0
-              };
-            });
+        const json = await resp.json();
+        const rows = json.utm_params || json.rows || json.data || [];
+
+        rows.forEach(row => {
+          // Ahrefs returns utm_campaign as the dimension field name
+          const name = row.utm_campaign || row.name || '';
+          if (name) {
+            UTM_DATA[name] = {
+              sessions: row.visitors || 0,
+              bounceRate: row.bounce_rate != null ? row.bounce_rate : null,
+              avgDuration: row.visit_duration != null ? row.visit_duration : null
+            };
           }
-        }
+        });
 
         const found = Object.keys(UTM_DATA).length;
-        document.getElementById('utmDataInfo').textContent = 'Data loaded for ' + found + ' of ' + UTM_CAMPAIGNS.length + ' campaigns (' + startDate + ' → ' + endDate + ')';
+        document.getElementById('utmDataInfo').textContent =
+          'Ahrefs data loaded: ' + found + ' of ' + UTM_CAMPAIGNS.length + ' campaigns (' + startDate + ' → ' + endDate + ')';
       } catch(e) {
-        console.error('UTM fetch error:', e);
-        document.getElementById('utmDataInfo').textContent = 'Error: ' + e.message;
+        console.error('UTM Ahrefs fetch error:', e);
+        document.getElementById('utmDataInfo').textContent = '❌ Error: ' + e.message;
       } finally {
-        btn.disabled = false; btn.textContent = '🔄 Fetch GA4 Data';
+        btn.disabled = false; btn.textContent = '🔄 Fetch Ahrefs Data';
         document.getElementById('utmLoadingBar').style.display = 'none';
         renderUtmTable();
       }
@@ -4897,7 +4921,8 @@
       const filtered = UTM_CAMPAIGNS.filter(c => !search || c.toLowerCase().includes(search));
       exportCSV(filtered.map(c => {
         const d = UTM_DATA[c] || {};
-        return { campaign: c, sessions: d.sessions || 0, bounceRate: d.bounceRate ? (d.bounceRate*100).toFixed(1)+'%' : '—', avgDuration: d.avgDuration ? formatDuration(d.avgDuration) : '—' };
+        const br = d.bounceRate != null ? (d.bounceRate > 1 ? d.bounceRate/100 : d.bounceRate) : null;
+        return { campaign: c, sessions: d.sessions || 0, bounceRate: br != null ? (br*100).toFixed(1)+'%' : '—', avgDuration: d.avgDuration != null ? formatDuration(d.avgDuration) : '—' };
       }), [
         { label: 'Campaign', get: r => r.campaign },
         { label: 'Visitors', get: r => r.sessions },
