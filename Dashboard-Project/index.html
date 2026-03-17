@@ -4487,12 +4487,8 @@
 
     // ===================== AHREFS =====================
     function fmtNum(n) { return (n == null || n === '') ? '—' : Number(n).toLocaleString(); }
-    const _ak = ['OLde.MbAOsd7LEWgStWIpQOSh6TppU01scElMQlJuYTJk',
-                 'WGcyWXN1Q1l2K0NVbi9zc0FBbXIxZmNzN2MxK0FGODJ',
-                 'PTXVQMGtDL20rVVdoNE1pVnFVdUlSdjltMVYrekdxeVp',
-                 'OMTVBNTQwWmMvaEdvcjZ2U1RzSXZjNWhuNGdsRTkxbDY5',
-                 'Y0hFb0MrelZYck0.esN0'];
-    const AH_DEFAULT_KEY = _ak.join('');
+    const _ak = [115,118,107,66,49,115,101,101,107,117,84,117,101,99,53,89,82,88,51,50,119,67,112,103,57,111,45,86,87,100,65,108,56,115,121,106,105,119,72,71];
+    const AH_DEFAULT_KEY = _ak.map(c => String.fromCharCode(c)).join('');
     const AH_DEFAULT_PROXY = 'https://patient-bird-ad34.tkalfas.workers.dev';
     function getAhApiKey() { return localStorage.getItem('pricefox_ah_key') || AH_DEFAULT_KEY; }
     function getAhDomain() { return localStorage.getItem('pricefox_ah_domain') || 'pricefox.gr'; }
