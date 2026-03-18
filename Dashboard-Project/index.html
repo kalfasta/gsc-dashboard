@@ -2896,36 +2896,6 @@
             };
           }).sort((a, b) => a.date.localeCompare(b.date));
         }
-        // Process BigQuery Ads campaign rows
-        function processBqCampaignData(rows) {
-          if (!rows || !rows.length) return [];
-          return rows.map(r => ({
-            name: r.campaign_name || '(unknown)',
-            cost: parseFloat(r.cost_eur) || 0,
-            clicks: parseInt(r.clicks) || 0,
-            impressions: parseInt(r.impressions) || 0,
-            conversions: parseFloat(r.conversions) || 0,
-            conv_value: parseFloat(r.conv_value) || 0,
-            cpa: parseFloat(r.cpa) || 0,
-            ctr: parseFloat(r.ctr_pct) || 0,
-            cvr: parseFloat(r.cvr_pct) || 0,
-            roas: parseFloat(r.roas) || 0,
-            sessions: 0, cpc: 0
-          }));
-        }
-        function processBqDailyData(rows) {
-          if (!rows || !rows.length) return [];
-          return rows.map(r => ({
-            date: r.date || '',
-            cost: parseFloat(r.cost_eur) || 0,
-            clicks: parseInt(r.clicks) || 0,
-            impressions: parseInt(r.impressions) || 0,
-            conversions: parseFloat(r.conversions) || 0,
-            conv_value: parseFloat(r.conv_value) || 0,
-            sessions: 0
-          })).sort((a, b) => a.date.localeCompare(b.date));
-        }
-
         ADS_DATA = processAdsData(adsCur);
         ADS_DAILY = processAdsDailyData(adsDailyCur);
 
@@ -3863,6 +3833,36 @@
           });
         }
       }
+    }
+
+    // ===================== BQ ADS DATA PARSERS =====================
+    function processBqCampaignData(rows) {
+      if (!rows || !rows.length) return [];
+      return rows.map(r => ({
+        name: r.campaign_name || '(unknown)',
+        cost: parseFloat(r.cost_eur) || 0,
+        clicks: parseInt(r.clicks) || 0,
+        impressions: parseInt(r.impressions) || 0,
+        conversions: parseFloat(r.conversions) || 0,
+        conv_value: parseFloat(r.conv_value) || 0,
+        cpa: parseFloat(r.cpa) || 0,
+        ctr: parseFloat(r.ctr_pct) || 0,
+        cvr: parseFloat(r.cvr_pct) || 0,
+        roas: parseFloat(r.roas) || 0,
+        sessions: 0, cpc: 0
+      }));
+    }
+    function processBqDailyData(rows) {
+      if (!rows || !rows.length) return [];
+      return rows.map(r => ({
+        date: r.date || '',
+        cost: parseFloat(r.cost_eur) || 0,
+        clicks: parseInt(r.clicks) || 0,
+        impressions: parseInt(r.impressions) || 0,
+        conversions: parseFloat(r.conversions) || 0,
+        conv_value: parseFloat(r.conv_value) || 0,
+        sessions: 0
+      })).sort((a, b) => a.date.localeCompare(b.date));
     }
 
     // ===================== BQ ADS LOADER =====================
