@@ -1506,36 +1506,50 @@
 
   <!-- TAB: ADS -->
   <div class="tab-content" id="tab-ads">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="adsKpiGrid">
+    <!-- BQ Ads Loader -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--text-muted)">Account:</label>
+        <select id="bqAdsAccount" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:4px 8px;font-size:12px">
+          <option value="both">🔀 All Accounts</option>
+          <option value="ci">🚗 Car Insurance</option>
+          <option value="en">⚡ Energy</option>
+        </select>
+      </div>
+      <button id="bqAdsLoadBtn" onclick="loadBqAdsData()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer">📊 Load BigQuery Ads Data</button>
+      <span id="bqAdsStatus" style="font-size:12px;color:var(--text-muted)"></span>
+      <span id="bqAdsSource" style="font-size:11px;color:var(--text-muted);margin-left:auto;opacity:0.6"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px" id="adsKpiGrid">
       <div class="kpi">
-        <div class="kpi-label">Total Ad Spend</div>
+        <div class="kpi-label">Total Spend</div>
         <div class="kpi-value" style="color:var(--yellow)" id="kpiAdSpend">—</div>
         <div class="kpi-sub" id="kpiAdSpendChg"></div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Total Ad Clicks</div>
+        <div class="kpi-label">Conversions</div>
+        <div class="kpi-value" style="color:var(--green)" id="kpiAdConv">—</div>
+        <div class="kpi-sub" id="kpiAdConvChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Conv Value</div>
+        <div class="kpi-value" style="color:var(--accent2)" id="kpiAdConvVal">—</div>
+        <div class="kpi-sub" id="kpiAdConvValChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg CPA</div>
+        <div class="kpi-value" style="color:var(--orange)" id="kpiAdCpa">—</div>
+        <div class="kpi-sub" id="kpiAdCpaChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">ROAS</div>
+        <div class="kpi-value" style="color:var(--purple)" id="kpiAdRoas">—</div>
+        <div class="kpi-sub" id="kpiAdRoasChg"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total Clicks</div>
         <div class="kpi-value" style="color:var(--accent)" id="kpiAdClicks">—</div>
         <div class="kpi-sub" id="kpiAdClicksChg"></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Total Impressions</div>
-        <div class="kpi-value" style="color:var(--accent2)" id="kpiAdImpr">—</div>
-        <div class="kpi-sub" id="kpiAdImprChg"></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Ad Sessions</div>
-        <div class="kpi-value" style="color:var(--purple)" id="kpiAdSessions">—</div>
-        <div class="kpi-sub" id="kpiAdSessionsChg"></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Avg CPC</div>
-        <div class="kpi-value" style="color:var(--orange)" id="kpiAdAvgCpc">—</div>
-        <div class="kpi-sub" id="kpiAdAvgCpcChg"></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Avg CTR</div>
-        <div class="kpi-value" style="color:var(--green)" id="kpiAdAvgCtr">—</div>
-        <div class="kpi-sub" id="kpiAdAvgCtrChg"></div>
       </div>
     </div>
 
@@ -1551,7 +1565,7 @@
     <div class="sub-content active" id="sub-adsoverview">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="card">
-          <h2>Daily Ad Spend</h2>
+          <h2>Daily Spend & Conversions</h2>
           <div style="height:280px"><canvas id="adsDailySpendChart"></canvas></div>
         </div>
         <div class="card">
@@ -1561,22 +1575,22 @@
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="card">
-          <h2>Top 10 Campaigns by Spend</h2>
+          <h2>Top Campaigns by Spend</h2>
           <div style="height:320px"><canvas id="adsTopSpendChart"></canvas></div>
         </div>
         <div class="card">
-          <h2>Top 10 Campaigns by Clicks</h2>
-          <div style="height:320px"><canvas id="adsTopClicksChart"></canvas></div>
+          <h2>Top Campaigns by Conversions</h2>
+          <div style="height:320px"><canvas id="adsTopConvChart"></canvas></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="card">
-          <h2>Cost per Conversion by Campaign</h2>
+          <h2>CPA by Campaign (lower = better)</h2>
           <div style="height:320px"><canvas id="adsCpaChart"></canvas></div>
         </div>
         <div class="card">
-          <h2>CTR by Campaign</h2>
-          <div style="height:320px"><canvas id="adsCtrChart"></canvas></div>
+          <h2>ROAS by Campaign (higher = better)</h2>
+          <div style="height:320px"><canvas id="adsRoasChart"></canvas></div>
         </div>
       </div>
     </div>
@@ -1608,13 +1622,15 @@
               <tr>
                 <th data-col="rank">#</th>
                 <th data-col="name">Campaign</th>
-                <th data-col="cost" class="num">Cost</th>
+                <th data-col="cost" class="num">Spend</th>
+                <th data-col="conversions" class="num">Conv</th>
+                <th data-col="conv_value" class="num">Conv €</th>
+                <th data-col="cpa" class="num">CPA</th>
+                <th data-col="roas" class="num">ROAS</th>
                 <th data-col="clicks" class="num">Clicks</th>
                 <th data-col="impressions" class="num">Impr</th>
-                <th data-col="sessions" class="num">Sessions</th>
                 <th data-col="ctr" class="num">CTR</th>
-                <th data-col="cpc" class="num">Avg CPC</th>
-                <th data-col="conversions" class="num">Conv</th>
+                <th data-col="cvr" class="num">CVR</th>
               </tr>
             </thead>
             <tbody id="adsBody"></tbody>
@@ -1993,11 +2009,14 @@
   <script>
     // ===================== CONFIG =====================
     const CLIENT_ID = '356155587494-dfrre3kr66pae8mh22mppntd8fuf202f.apps.googleusercontent.com';
-    const SCOPES = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly';
+    const SCOPES = 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/bigquery.readonly';
     const GSC_SITE = 'sc-domain:pricefox.gr';
     const GA4_PROPERTY = '426748947';
     const GSC_API = 'https://www.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(GSC_SITE) + '/searchAnalytics/query';
     const GA4_API = 'https://analyticsdata.googleapis.com/v1beta/properties/' + GA4_PROPERTY + ':runReport';
+    const BQ_API_BASE = 'https://bigquery.googleapis.com/bigquery/v2/projects/pricefox-ads-pipeline';
+    const BQ_CI_DATASET = 'google_ads_3943152648'; // Car Insurance
+    const BQ_EN_DATASET = 'google_ads_4562003700'; // Energy
 
     let accessToken = null;
     let tokenClient = null;
@@ -2408,6 +2427,62 @@
       });
     }
 
+    // ===================== BIGQUERY ADS API =====================
+    async function bqQuery(sql) {
+      const resp = await fetch(BQ_API_BASE + '/queries', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: sql, useLegacySql: false, location: 'EU', timeoutMs: 30000 })
+      });
+      if (!resp.ok) {
+        let err; try { err = await resp.json(); } catch(e) { err = {}; }
+        throw new Error(err.error?.message || 'BigQuery error ' + resp.status);
+      }
+      const data = await resp.json();
+      if (!data.jobComplete) throw new Error('BigQuery job timed out — try again');
+      if (!data.rows) return [];
+      const fields = data.schema.fields.map(f => f.name);
+      return data.rows.map(row => {
+        const obj = {};
+        row.f.forEach((cell, i) => { obj[fields[i]] = cell.v; });
+        return obj;
+      });
+    }
+
+    function bqAdsCampaignQuery(startDate, endDate, dataset) {
+      return bqQuery(`
+        SELECT
+          campaign_name,
+          SUM(impressions) AS impressions,
+          SUM(clicks) AS clicks,
+          ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
+          ROUND(SUM(conversions), 2) AS conversions,
+          ROUND(SUM(conversions_value), 2) AS conv_value,
+          ROUND(SUM(cost_micros)/NULLIF(SUM(conversions),0)/1000000, 2) AS cpa,
+          ROUND(SUM(clicks)/NULLIF(SUM(impressions),0)*100, 2) AS ctr_pct,
+          ROUND(SUM(conversions)/NULLIF(SUM(clicks),0)*100, 2) AS cvr_pct,
+          ROUND(SUM(conversions_value)/NULLIF(SUM(cost_micros)/1000000,0), 2) AS roas
+        FROM \`pricefox-ads-pipeline.${dataset}.campaign_performance\`
+        WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        GROUP BY campaign_name ORDER BY cost_eur DESC
+      `);
+    }
+
+    function bqAdsDailyQuery(startDate, endDate, dataset) {
+      return bqQuery(`
+        SELECT
+          FORMAT_DATE('%Y%m%d', date) AS date,
+          SUM(impressions) AS impressions,
+          SUM(clicks) AS clicks,
+          ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
+          ROUND(SUM(conversions), 2) AS conversions,
+          ROUND(SUM(conversions_value), 2) AS conv_value
+        FROM \`pricefox-ads-pipeline.${dataset}.campaign_performance\`
+        WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        GROUP BY date ORDER BY date
+      `);
+    }
+
     function ga4TrendQuery(startDate, endDate, pagePath) {
       const body = {
         dateRanges: [{ startDate, endDate }],
@@ -2786,7 +2861,7 @@
 
         updateCompareUI();
 
-        // Process Google Ads data from GA4 API
+        // Process Google Ads data from GA4 API (fallback)
         function processAdsData(data) {
           if (!data || !data.rows) return [];
           return data.rows.map(r => {
@@ -2797,15 +2872,12 @@
             const sessions = parseInt(r.metricValues[3].value) || 0;
             const conversions = parseFloat(r.metricValues[4].value) || 0;
             return {
-              name,
-              status: 'ACTIVE',
-              cost: parseFloat(cost.toFixed(2)),
-              clicks,
-              impressions,
-              sessions,
+              name, status: 'ACTIVE',
+              cost: parseFloat(cost.toFixed(2)), clicks, impressions, sessions,
               ctr: impressions > 0 ? parseFloat((clicks / impressions * 100).toFixed(2)) : 0,
               cpc: clicks > 0 ? parseFloat((cost / clicks).toFixed(2)) : 0,
-              conversions: parseFloat(conversions.toFixed(1))
+              conversions: parseFloat(conversions.toFixed(1)),
+              conv_value: 0, cpa: 0, cvr: 0, roas: 0
             };
           }).filter(r => r.name !== '(not set)');
         }
@@ -2819,9 +2891,39 @@
               clicks: parseInt(r.metricValues[1].value) || 0,
               impressions: parseInt(r.metricValues[2].value) || 0,
               sessions: parseInt(r.metricValues[3].value) || 0,
-              conversions: parseFloat(r.metricValues[4].value) || 0
+              conversions: parseFloat(r.metricValues[4].value) || 0,
+              conv_value: 0
             };
           }).sort((a, b) => a.date.localeCompare(b.date));
+        }
+        // Process BigQuery Ads campaign rows
+        function processBqCampaignData(rows) {
+          if (!rows || !rows.length) return [];
+          return rows.map(r => ({
+            name: r.campaign_name || '(unknown)',
+            cost: parseFloat(r.cost_eur) || 0,
+            clicks: parseInt(r.clicks) || 0,
+            impressions: parseInt(r.impressions) || 0,
+            conversions: parseFloat(r.conversions) || 0,
+            conv_value: parseFloat(r.conv_value) || 0,
+            cpa: parseFloat(r.cpa) || 0,
+            ctr: parseFloat(r.ctr_pct) || 0,
+            cvr: parseFloat(r.cvr_pct) || 0,
+            roas: parseFloat(r.roas) || 0,
+            sessions: 0, cpc: 0
+          }));
+        }
+        function processBqDailyData(rows) {
+          if (!rows || !rows.length) return [];
+          return rows.map(r => ({
+            date: r.date || '',
+            cost: parseFloat(r.cost_eur) || 0,
+            clicks: parseInt(r.clicks) || 0,
+            impressions: parseInt(r.impressions) || 0,
+            conversions: parseFloat(r.conversions) || 0,
+            conv_value: parseFloat(r.conv_value) || 0,
+            sessions: 0
+          })).sort((a, b) => a.date.localeCompare(b.date));
         }
 
         ADS_DATA = processAdsData(adsCur);
@@ -3639,23 +3741,27 @@
       const totalSpend = data.reduce((s, r) => s + r.cost, 0);
       const totalClicks = data.reduce((s, r) => s + r.clicks, 0);
       const totalImpr = data.reduce((s, r) => s + r.impressions, 0);
-      const totalSessions = data.reduce((s, r) => s + (r.sessions || 0), 0);
       const totalConv = data.reduce((s, r) => s + r.conversions, 0);
-      const avgCpc = totalClicks > 0 ? (totalSpend / totalClicks) : 0;
-      const avgCtr = totalImpr > 0 ? (totalClicks / totalImpr * 100) : 0;
+      const totalConvVal = data.reduce((s, r) => s + (r.conv_value || 0), 0);
+      const avgCpa = totalConv > 0 ? (totalSpend / totalConv) : 0;
+      const roas = totalSpend > 0 ? (totalConvVal / totalSpend) : 0;
       document.getElementById('kpiAdSpend').textContent = '\u20AC' + totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       document.getElementById('kpiAdClicks').textContent = totalClicks.toLocaleString();
-      document.getElementById('kpiAdImpr').textContent = totalImpr.toLocaleString();
-      document.getElementById('kpiAdSessions').textContent = totalSessions.toLocaleString();
-      document.getElementById('kpiAdAvgCpc').textContent = '\u20AC' + avgCpc.toFixed(2);
-      document.getElementById('kpiAdAvgCtr').textContent = avgCtr.toFixed(2) + '%';
+      const convEl = document.getElementById('kpiAdConv');
+      if (convEl) convEl.textContent = totalConv.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+      const convValEl = document.getElementById('kpiAdConvVal');
+      if (convValEl) convValEl.textContent = '\u20AC' + totalConvVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const cpaEl = document.getElementById('kpiAdCpa');
+      if (cpaEl) cpaEl.textContent = totalConv > 0 ? '\u20AC' + avgCpa.toFixed(2) : '—';
+      const roasEl = document.getElementById('kpiAdRoas');
+      if (roasEl) roasEl.textContent = totalSpend > 0 ? roas.toFixed(2) + 'x' : '—';
     }
 
     function sortAdsData(data, col, dir) {
       return [...data].sort((a, b) => {
         const va = a[col] ?? 0, vb = b[col] ?? 0;
         if (col === 'name') return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
-        return dir === 'asc' ? va - vb : vb - va;
+        return dir === 'asc' ? Number(va) - Number(vb) : Number(vb) - Number(va);
       });
     }
 
@@ -3669,7 +3775,7 @@
       Object.values(adsCharts).forEach(c => c.destroy());
       adsCharts = {};
 
-      // Daily Spend Chart
+      // Daily Spend + Conversions Chart
       if (ADS_DAILY && ADS_DAILY.length > 0) {
         const labels = ADS_DAILY.map(d => {
           const s = d.date;
@@ -3680,17 +3786,12 @@
           type: 'line',
           data: {
             labels,
-            datasets: [{
-              label: 'Spend (\u20AC)',
-              data: ADS_DAILY.map(d => d.cost.toFixed(2)),
-              borderColor: '#eab308',
-              backgroundColor: 'rgba(234,179,8,0.1)',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 2
-            }]
+            datasets: [
+              { label: 'Spend (€)', data: ADS_DAILY.map(d => parseFloat(d.cost).toFixed(2)), borderColor: '#eab308', backgroundColor: 'rgba(234,179,8,0.1)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
+              { label: 'Conversions', data: ADS_DAILY.map(d => parseFloat(d.conversions || 0).toFixed(1)), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0)', fill: false, tension: 0.3, pointRadius: 2, yAxisID: 'y1' }
+            ]
           },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', callback: v => '\u20AC' + v }, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+          options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#eab308', callback: v => '€' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y1: { type: 'linear', position: 'right', ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } } } }
         });
 
         // Daily Clicks & Impressions
@@ -3708,81 +3809,107 @@
         });
       }
 
-      // Top 10 Campaigns by Spend
+      // Top Campaigns by Spend
       if (ADS_DATA && ADS_DATA.length > 0) {
+        const shortName = n => n.replace(/^S\[.+?\]:\s*/,'').length > 28 ? n.replace(/^S\[.+?\]:\s*/,'').slice(0,26)+'…' : n.replace(/^S\[.+?\]:\s*/,'');
         const top10spend = [...ADS_DATA].sort((a, b) => b.cost - a.cost).slice(0, 10);
         const ctx3 = document.getElementById('adsTopSpendChart').getContext('2d');
         adsCharts.topSpend = new Chart(ctx3, {
           type: 'bar',
           data: {
-            labels: top10spend.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
-            datasets: [{
-              label: 'Spend (\u20AC)',
-              data: top10spend.map(r => r.cost),
-              backgroundColor: 'rgba(234,179,8,0.7)',
-              borderColor: '#eab308',
-              borderWidth: 1
-            }]
+            labels: top10spend.map(r => shortName(r.name)),
+            datasets: [{ label: 'Spend (€)', data: top10spend.map(r => r.cost), backgroundColor: 'rgba(234,179,8,0.7)', borderColor: '#eab308', borderWidth: 1 }]
           },
-          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '\u20AC' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '€' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
         });
 
-        // Top 10 by Clicks
-        const top10clicks = [...ADS_DATA].sort((a, b) => b.clicks - a.clicks).slice(0, 10);
-        const ctx4 = document.getElementById('adsTopClicksChart').getContext('2d');
-        adsCharts.topClicks = new Chart(ctx4, {
+        // Top Campaigns by Conversions
+        const top10conv = [...ADS_DATA].sort((a, b) => b.conversions - a.conversions).slice(0, 10);
+        const ctx4 = document.getElementById('adsTopConvChart').getContext('2d');
+        adsCharts.topConv = new Chart(ctx4, {
           type: 'bar',
           data: {
-            labels: top10clicks.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
-            datasets: [{
-              label: 'Clicks',
-              data: top10clicks.map(r => r.clicks),
-              backgroundColor: 'rgba(99,102,241,0.7)',
-              borderColor: '#6366f1',
-              borderWidth: 1
-            }]
+            labels: top10conv.map(r => shortName(r.name)),
+            datasets: [{ label: 'Conversions', data: top10conv.map(r => r.conversions), backgroundColor: 'rgba(34,197,94,0.7)', borderColor: '#22c55e', borderWidth: 1 }]
           },
           options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
         });
 
-        // CPA by Campaign (only campaigns with conversions > 0)
-        const withConv = ADS_DATA.filter(r => r.conversions > 0).map(r => ({ ...r, cpa: r.cost / r.conversions })).sort((a, b) => a.cpa - b.cpa).slice(0, 10);
+        // CPA by Campaign
+        const withConv = ADS_DATA.filter(r => r.conversions > 0).map(r => ({ ...r, _cpa: r.cpa || (r.cost / r.conversions) })).sort((a, b) => a._cpa - b._cpa).slice(0, 10);
         const ctx5 = document.getElementById('adsCpaChart').getContext('2d');
         if (withConv.length > 0) {
           adsCharts.cpa = new Chart(ctx5, {
             type: 'bar',
             data: {
-              labels: withConv.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
-              datasets: [{
-                label: 'Cost per Conversion (\u20AC)',
-                data: withConv.map(r => r.cpa.toFixed(2)),
-                backgroundColor: withConv.map(r => r.cpa < 10 ? 'rgba(34,197,94,0.7)' : r.cpa < 30 ? 'rgba(234,179,8,0.7)' : 'rgba(239,68,68,0.7)'),
-                borderWidth: 1
-              }]
+              labels: withConv.map(r => shortName(r.name)),
+              datasets: [{ label: 'CPA (€)', data: withConv.map(r => r._cpa.toFixed(2)), backgroundColor: withConv.map(r => r._cpa < 10 ? 'rgba(34,197,94,0.7)' : r._cpa < 30 ? 'rgba(234,179,8,0.7)' : 'rgba(239,68,68,0.7)'), borderWidth: 1 }]
             },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '\u20AC' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '€' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
           });
         }
 
-        // CTR by Campaign (top 10 by clicks, showing CTR)
-        const top10ctr = [...ADS_DATA].filter(r => r.impressions > 100).sort((a, b) => b.ctr - a.ctr).slice(0, 10);
-        const ctx6 = document.getElementById('adsCtrChart').getContext('2d');
-        if (top10ctr.length > 0) {
-          adsCharts.ctr = new Chart(ctx6, {
+        // ROAS by Campaign
+        const withRoas = ADS_DATA.filter(r => r.roas > 0).sort((a, b) => b.roas - a.roas).slice(0, 10);
+        const ctx6 = document.getElementById('adsRoasChart').getContext('2d');
+        if (withRoas.length > 0) {
+          adsCharts.roas = new Chart(ctx6, {
             type: 'bar',
             data: {
-              labels: top10ctr.map(r => r.name.length > 30 ? r.name.slice(0, 28) + '...' : r.name),
-              datasets: [{
-                label: 'CTR (%)',
-                data: top10ctr.map(r => r.ctr),
-                backgroundColor: 'rgba(34,197,94,0.7)',
-                borderColor: '#22c55e',
-                borderWidth: 1
-              }]
+              labels: withRoas.map(r => shortName(r.name)),
+              datasets: [{ label: 'ROAS', data: withRoas.map(r => r.roas), backgroundColor: withRoas.map(r => r.roas >= 3 ? 'rgba(34,197,94,0.7)' : r.roas >= 1 ? 'rgba(234,179,8,0.7)' : 'rgba(239,68,68,0.7)'), borderWidth: 1 }]
             },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => v + 'x' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
           });
         }
+      }
+    }
+
+    // ===================== BQ ADS LOADER =====================
+    async function loadBqAdsData() {
+      if (!accessToken) { alert('Please sign in first (Load Data button)'); return; }
+      const btn = document.getElementById('bqAdsLoadBtn');
+      const status = document.getElementById('bqAdsStatus');
+      const sourceEl = document.getElementById('bqAdsSource');
+      btn.disabled = true; btn.textContent = '⏳ Loading…';
+      status.textContent = 'Querying BigQuery…';
+      try {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const account = document.getElementById('bqAdsAccount').value;
+        const datasets = account === 'ci' ? [BQ_CI_DATASET] : account === 'en' ? [BQ_EN_DATASET] : [BQ_CI_DATASET, BQ_EN_DATASET];
+        const [campResults, dailyResults] = await Promise.all([
+          Promise.all(datasets.map(ds => bqAdsCampaignQuery(startDate, endDate, ds))),
+          Promise.all(datasets.map(ds => bqAdsDailyQuery(startDate, endDate, ds)))
+        ]);
+        // Merge campaign results from both datasets
+        const allCamp = campResults.flat();
+        const allDaily = dailyResults.flat();
+        // Aggregate daily by date
+        const dailyMap = {};
+        allDaily.forEach(d => {
+          if (!dailyMap[d.date]) dailyMap[d.date] = { date: d.date, cost: 0, clicks: 0, impressions: 0, conversions: 0, conv_value: 0, sessions: 0 };
+          dailyMap[d.date].cost += d.cost;
+          dailyMap[d.date].clicks += d.clicks;
+          dailyMap[d.date].impressions += d.impressions;
+          dailyMap[d.date].conversions += d.conversions;
+          dailyMap[d.date].conv_value += d.conv_value;
+        });
+        ADS_DATA = processBqCampaignData(allCamp);
+        ADS_DAILY = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+        applyAdsFilter();
+        populateCampaignSelects();
+        renderAdsOverviewCharts();
+        populateAdsDatalist();
+        const totalConv = ADS_DATA.reduce((s, r) => s + r.conversions, 0);
+        const totalSpend = ADS_DATA.reduce((s, r) => s + r.cost, 0);
+        status.textContent = `✅ ${ADS_DATA.length} campaigns | €${totalSpend.toFixed(0)} spend | ${totalConv.toFixed(0)} conv`;
+        sourceEl.textContent = `Source: BigQuery pricefox-ads-pipeline | ${startDate} → ${endDate}`;
+      } catch (e) {
+        status.textContent = '❌ ' + e.message;
+        console.error('BQ Ads error:', e);
+      } finally {
+        btn.disabled = false; btn.textContent = '📊 Load BigQuery Ads Data';
       }
     }
 
@@ -3855,12 +3982,14 @@
         '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.name) + '">' +
           '<a class="campaign-link" data-campaign="' + escHtml(r.name) + '">' + escHtml(r.name) + '</a></td>' +
         '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
+        '<td class="num">' + (r.conversions || 0).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1}) + '</td>' +
+        '<td class="num">' + (r.conv_value > 0 ? '\u20AC' + (r.conv_value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '—') + '</td>' +
+        '<td class="num">' + (r.cpa > 0 ? '\u20AC' + parseFloat(r.cpa).toFixed(2) : '—') + '</td>' +
+        '<td class="num">' + (r.roas > 0 ? parseFloat(r.roas).toFixed(2) + 'x' : '—') + '</td>' +
         '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
         '<td class="num">' + r.impressions.toLocaleString() + '</td>' +
-        '<td class="num" style="color:var(--purple)">' + (r.sessions || 0).toLocaleString() + '</td>' +
-        '<td class="num">' + r.ctr + '%</td>' +
-        '<td class="num">\u20AC' + r.cpc.toFixed(2) + '</td>' +
-        '<td class="num">' + r.conversions + '</td>' +
+        '<td class="num">' + (r.ctr || 0) + '%</td>' +
+        '<td class="num">' + (r.cvr > 0 ? parseFloat(r.cvr).toFixed(2) + '%' : '—') + '</td>' +
         '</tr>'
       ).join('');
 
