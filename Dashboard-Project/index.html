@@ -4220,18 +4220,15 @@
         const endDate = document.getElementById('endDate').value;
         const account = document.getElementById('bqAdsAccount').value;
         const datasets = account === 'ci' ? [BQ_CI_DATASET] : account === 'en' ? [BQ_EN_DATASET] : [BQ_CI_DATASET, BQ_EN_DATASET];
-        const [campResults, dailyResults, kwdResults, deviceResults, geoResults, convResults] = await Promise.all([
+        const [campResults, dailyResults, kwdResults] = await Promise.all([
           Promise.all(datasets.map(ds => bqAdsCampaignQuery(startDate, endDate, ds))),
           Promise.all(datasets.map(ds => bqAdsDailyQuery(startDate, endDate, ds))),
-          Promise.all(datasets.map(ds => bqAdsKeywordsQuery(startDate, endDate, ds))),
-          Promise.all(datasets.map(ds => bqAdsDeviceQuery(startDate, endDate, ds))),
-          Promise.all(datasets.map(ds => bqAdsGeoQuery(startDate, endDate, ds))),
-          Promise.all(datasets.map(ds => bqAdsConvActionsQuery(startDate, endDate, ds)))
+          Promise.all(datasets.map(ds => bqAdsKeywordsQuery(startDate, endDate, ds)))
         ]);
         // Merge results from both datasets
         const allCamp = campResults.flat();
-        const allDaily = dailyResults.flat();
-        // Aggregate daily by date
+        const allDaily = processBqDailyData(dailyResults.flat());
+        // Aggregate daily by date (merge CI + Energy)
         const dailyMap = {};
         allDaily.forEach(d => {
           if (!dailyMap[d.date]) dailyMap[d.date] = { date: d.date, cost: 0, clicks: 0, impressions: 0, conversions: 0, conv_value: 0, sessions: 0 };
@@ -4244,16 +4241,11 @@
         ADS_DATA = processBqCampaignData(allCamp);
         ADS_DAILY = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
         ADS_KEYWORDS = processBqKeywords(kwdResults.flat());
-        ADS_DEVICES = processBqDevices(deviceResults.flat());
-        ADS_GEO = processBqGeo(geoResults.flat());
-        ADS_CONV_ACTIONS = processBqConvActions(convResults.flat());
         applyAdsFilter();
         populateCampaignSelects();
         renderAdsOverviewCharts();
         populateAdsDatalist();
         renderKeywordsTab();
-        renderDeviceGeoTab();
-        renderConvActionsTab();
         const totalConv = ADS_DATA.reduce((s, r) => s + r.conversions, 0);
         const totalSpend = ADS_DATA.reduce((s, r) => s + r.cost, 0);
         status.textContent = `✅ ${ADS_DATA.length} campaigns | €${totalSpend.toFixed(0)} spend | ${totalConv.toFixed(0)} conv`;
