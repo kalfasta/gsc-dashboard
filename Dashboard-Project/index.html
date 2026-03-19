@@ -1596,7 +1596,7 @@
     <div class="sub-tabs" id="adsSubTabs">
       <div class="sub-tab active" data-subtab="adsoverview">Overview</div>
       <div class="sub-tab" data-subtab="campaigns">Campaigns</div>
-      <div class="sub-tab" data-subtab="adskeywords">Keywords</div>
+      <div class="sub-tab" data-subtab="adskeywords">Ad Groups</div>
       <div class="sub-tab" data-subtab="searchterms">Search Terms</div>
       <div class="sub-tab" data-subtab="adgroups">Ad Groups</div>
     </div>
@@ -1809,7 +1809,7 @@
     <!-- SUB: KEYWORDS -->
     <div class="sub-content" id="sub-adskeywords">
       <div class="filter-bar">
-        <h3>Keyword Performance</h3>
+        <h3>Ad Group Performance</h3>
         <div class="filter-row">
           <div class="filter-group"><label>Account</label>
             <select id="kwdAcctSelect">
@@ -1818,7 +1818,7 @@
               <option value="both">Both</option>
             </select>
           </div>
-          <div class="filter-group"><label>Search</label><input type="text" id="kwdSearch" placeholder="Filter keywords..."></div>
+          <div class="filter-group"><label>Search</label><input type="text" id="kwdSearch" placeholder="Filter ad groups..."></div>
           <div class="filter-group"><label>Show</label>
             <select id="kwdPerPage">
               <option value="25">25 rows</option>
@@ -1831,24 +1831,23 @@
         </div>
       </div>
       <div class="card">
-        <h2>Keywords <span class="count" id="kwdResultCount"></span></h2>
-        <div id="kwdLoading" style="display:none;text-align:center;padding:30px;color:var(--muted)">Loading keywords...</div>
-        <div id="kwdEmpty" style="text-align:center;padding:30px;color:var(--muted)">No keyword data. Click Load Data first.</div>
+        <h2>Ad Groups <span class="count" id="kwdResultCount"></span></h2>
+        <div id="kwdLoading" style="display:none;text-align:center;padding:30px;color:var(--muted)">Loading ad groups...</div>
+        <div id="kwdEmpty" style="text-align:center;padding:30px;color:var(--muted)">No ad group data. Click Load BigQuery Ads Data first.</div>
         <div id="kwdTableWrap" style="display:none;overflow-x:auto">
           <table id="kwdTable">
             <thead>
               <tr>
                 <th data-col="rank">#</th>
-                <th data-col="keyword">Keyword</th>
+                <th data-col="keyword">Ad Group</th>
                 <th data-col="campaign">Campaign</th>
                 <th data-col="cost" class="num">Cost</th>
                 <th data-col="clicks" class="num">Clicks</th>
                 <th data-col="impressions" class="num">Impr</th>
                 <th data-col="ctr" class="num">CTR</th>
-                <th data-col="cpc" class="num">Avg CPC</th>
+                <th data-col="avg_cpc" class="num">Avg CPC</th>
                 <th data-col="conversions" class="num">Conv</th>
                 <th data-col="cpa" class="num">CPA</th>
-                <th data-col="quality_score" class="num">QS</th>
               </tr>
             </thead>
             <tbody id="kwdBody"></tbody>
@@ -2714,7 +2713,7 @@
       return bqQuery(`
         SELECT
           '${acctLabel}' AS account,
-          keyword_text, keyword_match_type, campaign_name,
+          ad_group_name, campaign_name,
           SUM(impressions) AS impressions,
           SUM(clicks) AS clicks,
           ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
@@ -2723,11 +2722,10 @@
           ROUND(SUM(cost_micros)/NULLIF(SUM(conversions),0)/1000000, 2) AS cpa,
           ROUND(SUM(clicks)/NULLIF(SUM(impressions),0)*100, 2) AS ctr_pct,
           ROUND(SUM(conversions)/NULLIF(SUM(clicks),0)*100, 2) AS cvr_pct,
-          ROUND(SUM(cost_micros)/NULLIF(SUM(clicks),0)/1000000, 2) AS avg_cpc,
-          ROUND(AVG(quality_score), 1) AS avg_qs
+          ROUND(SUM(cost_micros)/NULLIF(SUM(clicks),0)/1000000, 2) AS avg_cpc
         FROM \`pricefox-ads-pipeline.${dataset}.keyword_performance\`
         WHERE date BETWEEN '${startDate}' AND '${endDate}'
-        GROUP BY keyword_text, keyword_match_type, campaign_name
+        GROUP BY ad_group_name, campaign_name
         ORDER BY cost_eur DESC LIMIT 500
       `);
     }
@@ -4194,13 +4192,13 @@
     function processBqKeywords(rows) {
       if (!rows || !rows.length) return [];
       return rows.map(r => ({
-        account: r.account || '—', keyword: r.keyword_text || '',
-        match_type: r.keyword_match_type || '', campaign: r.campaign_name || '',
+        account: r.account || '—', keyword: r.ad_group_name || '',
+        campaign: r.campaign_name || '',
         cost: parseFloat(r.cost_eur) || 0, clicks: parseInt(r.clicks) || 0,
         impressions: parseInt(r.impressions) || 0, conversions: parseFloat(r.conversions) || 0,
         conv_value: parseFloat(r.conv_value) || 0, cpa: parseFloat(r.cpa) || 0,
         ctr: parseFloat(r.ctr_pct) || 0, cvr: parseFloat(r.cvr_pct) || 0,
-        avg_cpc: parseFloat(r.avg_cpc) || 0, avg_qs: parseFloat(r.avg_qs) || 0
+        avg_cpc: parseFloat(r.avg_cpc) || 0
       }));
     }
     function processBqSearchTermsBq(rows) {
@@ -4369,9 +4367,7 @@
         <tr>
           <td>${(kwdPage - 1) * (perPage || 0) + i + 1}</td>
           <td>
-            <span style="font-size:10px;padding:1px 5px;border-radius:3px;margin-right:4px;background:${r.account==='CI'?'rgba(99,102,241,0.2)':'rgba(34,197,94,0.2)'};color:${r.account==='CI'?'#818cf8':'#4ade80'}">${escHtml(r.account)}</span>
-            ${escHtml(r.keyword)}
-            <span style="font-size:10px;color:var(--muted);margin-left:4px">[${escHtml(r.match_type||'')}]</span>
+            <span style="font-size:10px;padding:1px 5px;border-radius:3px;margin-right:6px;background:${r.account==='CI'?'rgba(99,102,241,0.2)':'rgba(34,197,94,0.2)'};color:${r.account==='CI'?'#818cf8':'#4ade80'}">${escHtml(r.account)}</span>${escHtml(r.keyword)}
           </td>
           <td style="font-size:0.8em;color:var(--muted)">${escHtml(r.campaign)}</td>
           <td class="num">€${fmtNum(r.cost)}</td>
@@ -4381,7 +4377,6 @@
           <td class="num">€${fmtNum(r.avg_cpc)}</td>
           <td class="num">${fmtNum(r.conversions)}</td>
           <td class="num">${r.cpa ? '€' + fmtNum(r.cpa) : '—'}</td>
-          <td class="num" style="color:${r.avg_qs>=7?'#4ade80':r.avg_qs>=5?'#eab308':'#f87171'}">${r.avg_qs || '—'}</td>
         </tr>`).join('');
       wrap.style.display = ''; empty.style.display = 'none';
       renderSimplePagination('kwdPagInfo', 'kwdPagBtns', kwdPage, totalPages, rows.length, p => { kwdPage = p; renderKeywordsTab(); });
@@ -4397,8 +4392,8 @@
     });
     document.getElementById('kwdExport').addEventListener('click', () => {
       if (!ADS_KEYWORDS.length) return;
-      downloadCSV(ADS_KEYWORDS.map(r => [r.account, r.keyword, r.match_type, r.campaign, r.cost, r.clicks, r.impressions, r.ctr, r.avg_cpc, r.conversions, r.cpa, r.avg_qs]),
-        ['Account','Keyword','Match Type','Campaign','Cost','Clicks','Impressions','CTR%','Avg CPC','Conversions','CPA','QS'], 'ads_keywords.csv');
+      downloadCSV(ADS_KEYWORDS.map(r => [r.account, r.keyword, r.campaign, r.cost, r.clicks, r.impressions, r.ctr, r.avg_cpc, r.conversions, r.cpa]),
+        ['Account','Ad Group','Campaign','Cost','Clicks','Impressions','CTR%','Avg CPC','Conversions','CPA'], 'ads_adgroups.csv');
     });
 
     // ===================== DEVICE / GEO TAB =====================
