@@ -1557,8 +1557,11 @@
     <div class="sub-tabs" id="adsSubTabs">
       <div class="sub-tab active" data-subtab="adsoverview">Overview</div>
       <div class="sub-tab" data-subtab="campaigns">Campaigns</div>
+      <div class="sub-tab" data-subtab="adskeywords">Keywords</div>
       <div class="sub-tab" data-subtab="searchterms">Search Terms</div>
       <div class="sub-tab" data-subtab="adgroups">Ad Groups</div>
+      <div class="sub-tab" data-subtab="devicegeo">Device / Geo</div>
+      <div class="sub-tab" data-subtab="convactions">Conversions</div>
     </div>
 
     <!-- SUB: ADS OVERVIEW -->
@@ -1621,6 +1624,7 @@
             <thead>
               <tr>
                 <th data-col="rank">#</th>
+                <th data-col="account">Acct</th>
                 <th data-col="name">Campaign</th>
                 <th data-col="cost" class="num">Spend</th>
                 <th data-col="conversions" class="num">Conv</th>
@@ -1756,6 +1760,172 @@
         </div>
       </div>
     </div>
+
+    <!-- SUB: KEYWORDS -->
+    <div class="sub-content" id="sub-adskeywords">
+      <div class="filter-bar">
+        <h3>Keyword Performance</h3>
+        <div class="filter-row">
+          <div class="filter-group"><label>Account</label>
+            <select id="kwdAcctSelect">
+              <option value="CI">Car Insurance</option>
+              <option value="Energy">Energy</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+          <div class="filter-group"><label>Search</label><input type="text" id="kwdSearch" placeholder="Filter keywords..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="kwdPerPage">
+              <option value="25">25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100" selected>100 rows</option>
+              <option value="0">All</option>
+            </select>
+          </div>
+          <button class="btn-sm btn-outline" id="kwdExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Keywords <span class="count" id="kwdResultCount"></span></h2>
+        <div id="kwdLoading" style="display:none;text-align:center;padding:30px;color:var(--muted)">Loading keywords...</div>
+        <div id="kwdEmpty" style="text-align:center;padding:30px;color:var(--muted)">No keyword data. Click Load Data first.</div>
+        <div id="kwdTableWrap" style="display:none;overflow-x:auto">
+          <table id="kwdTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="keyword">Keyword</th>
+                <th data-col="campaign">Campaign</th>
+                <th data-col="cost" class="num">Cost</th>
+                <th data-col="clicks" class="num">Clicks</th>
+                <th data-col="impressions" class="num">Impr</th>
+                <th data-col="ctr" class="num">CTR</th>
+                <th data-col="cpc" class="num">Avg CPC</th>
+                <th data-col="conversions" class="num">Conv</th>
+                <th data-col="cpa" class="num">CPA</th>
+                <th data-col="quality_score" class="num">QS</th>
+              </tr>
+            </thead>
+            <tbody id="kwdBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="kwdPagInfo"></div>
+          <div class="pages" id="kwdPagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB: DEVICE / GEO -->
+    <div class="sub-content" id="sub-devicegeo">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <h2>Performance by Device</h2>
+          <div style="height:300px"><canvas id="adsDeviceChart"></canvas></div>
+          <div id="deviceTableWrap" style="overflow-x:auto;margin-top:12px">
+            <table id="deviceTable">
+              <thead>
+                <tr>
+                  <th>Device</th>
+                  <th class="num">Clicks</th>
+                  <th class="num">Cost</th>
+                  <th class="num">Conv</th>
+                  <th class="num">CVR</th>
+                  <th class="num">CPA</th>
+                </tr>
+              </thead>
+              <tbody id="deviceBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Performance by Ad Network</h2>
+          <div style="height:300px"><canvas id="adsNetworkChart"></canvas></div>
+          <div id="networkTableWrap" style="overflow-x:auto;margin-top:12px">
+            <table id="networkTable">
+              <thead>
+                <tr>
+                  <th>Network</th>
+                  <th class="num">Clicks</th>
+                  <th class="num">Cost</th>
+                  <th class="num">Conv</th>
+                  <th class="num">CVR</th>
+                  <th class="num">CPA</th>
+                </tr>
+              </thead>
+              <tbody id="networkBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Top Locations by Conversions <span class="count" id="geoResultCount"></span></h2>
+        <div class="filter-row" style="margin-bottom:12px">
+          <div class="filter-group"><label>Search</label><input type="text" id="geoSearch" placeholder="Filter location..."></div>
+          <div class="filter-group"><label>Show</label>
+            <select id="geoPerPage">
+              <option value="25" selected>25 rows</option>
+              <option value="50">50 rows</option>
+              <option value="100">100 rows</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="geoTable">
+            <thead>
+              <tr>
+                <th data-col="rank">#</th>
+                <th data-col="location">Location</th>
+                <th data-col="clicks" class="num">Clicks</th>
+                <th data-col="cost" class="num">Cost</th>
+                <th data-col="conversions" class="num">Conv</th>
+                <th data-col="cpa" class="num">CPA</th>
+                <th data-col="ctr" class="num">CTR</th>
+              </tr>
+            </thead>
+            <tbody id="geoBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info" id="geoPagInfo"></div>
+          <div class="pages" id="geoPagBtns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB: CONVERSIONS -->
+    <div class="sub-content" id="sub-convactions">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <h2>Conversions by Action (CI)</h2>
+          <div style="height:300px"><canvas id="adsConvCiChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Conversions by Action (Energy)</h2>
+          <div style="height:300px"><canvas id="adsConvEnChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Conversion Actions Detail</h2>
+        <div style="overflow-x:auto">
+          <table id="convTable">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Conversion Action</th>
+                <th>Category</th>
+                <th class="num">Conv</th>
+                <th class="num">All Conv</th>
+                <th class="num">Conv Value</th>
+                <th class="num">CPA</th>
+              </tr>
+            </thead>
+            <tbody id="convBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- TAB: MAILCHIMP -->
@@ -2450,8 +2620,17 @@
     }
 
     function bqAdsCampaignQuery(startDate, endDate, dataset) {
+      const acctLabel = dataset === BQ_CI_DATASET ? 'CI' : 'Energy';
       return bqQuery(`
+        WITH deduped AS (
+          SELECT *, ROW_NUMBER() OVER (
+            PARTITION BY date, campaign_id, device, ad_network_type, click_type, hour
+            ORDER BY _synced_at DESC) AS rn
+          FROM \`pricefox-ads-pipeline.${dataset}.campaign_performance\`
+          WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        )
         SELECT
+          '${acctLabel}' AS account,
           campaign_name,
           SUM(impressions) AS impressions,
           SUM(clicks) AS clicks,
@@ -2462,14 +2641,20 @@
           ROUND(SUM(clicks)/NULLIF(SUM(impressions),0)*100, 2) AS ctr_pct,
           ROUND(SUM(conversions)/NULLIF(SUM(clicks),0)*100, 2) AS cvr_pct,
           ROUND(SUM(conversions_value)/NULLIF(SUM(cost_micros)/1000000,0), 2) AS roas
-        FROM \`pricefox-ads-pipeline.${dataset}.campaign_performance\`
-        WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        FROM deduped WHERE rn = 1
         GROUP BY campaign_name ORDER BY cost_eur DESC
       `);
     }
 
     function bqAdsDailyQuery(startDate, endDate, dataset) {
       return bqQuery(`
+        WITH deduped AS (
+          SELECT *, ROW_NUMBER() OVER (
+            PARTITION BY date, campaign_id, device, ad_network_type, click_type, hour
+            ORDER BY _synced_at DESC) AS rn
+          FROM \`pricefox-ads-pipeline.${dataset}.campaign_performance\`
+          WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        )
         SELECT
           FORMAT_DATE('%Y%m%d', date) AS date,
           SUM(impressions) AS impressions,
@@ -2477,9 +2662,108 @@
           ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
           ROUND(SUM(conversions), 2) AS conversions,
           ROUND(SUM(conversions_value), 2) AS conv_value
-        FROM \`pricefox-ads-pipeline.${dataset}.campaign_performance\`
-        WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        FROM deduped WHERE rn = 1
         GROUP BY date ORDER BY date
+      `);
+    }
+
+    function bqAdsKeywordsQuery(startDate, endDate, dataset) {
+      const acctLabel = dataset === BQ_CI_DATASET ? 'CI' : 'Energy';
+      return bqQuery(`
+        SELECT
+          '${acctLabel}' AS account,
+          keyword_text, keyword_match_type, campaign_name,
+          SUM(impressions) AS impressions,
+          SUM(clicks) AS clicks,
+          ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
+          ROUND(SUM(conversions), 2) AS conversions,
+          ROUND(SUM(conversions_value), 2) AS conv_value,
+          ROUND(SUM(cost_micros)/NULLIF(SUM(conversions),0)/1000000, 2) AS cpa,
+          ROUND(SUM(clicks)/NULLIF(SUM(impressions),0)*100, 2) AS ctr_pct,
+          ROUND(SUM(conversions)/NULLIF(SUM(clicks),0)*100, 2) AS cvr_pct,
+          ROUND(SUM(cost_micros)/NULLIF(SUM(clicks),0)/1000000, 2) AS avg_cpc,
+          ROUND(AVG(quality_score), 1) AS avg_qs
+        FROM \`pricefox-ads-pipeline.${dataset}.keyword_performance\`
+        WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        GROUP BY keyword_text, keyword_match_type, campaign_name
+        ORDER BY cost_eur DESC LIMIT 500
+      `);
+    }
+
+    function bqAdsSearchTermsBqQuery(startDate, endDate, dataset, campaignName) {
+      const acctLabel = dataset === BQ_CI_DATASET ? 'CI' : 'Energy';
+      const cf = campaignName ? `AND campaign_name = '${campaignName.replace(/'/g, "''")}'` : '';
+      return bqQuery(`
+        SELECT
+          '${acctLabel}' AS account,
+          search_term, keyword_text, keyword_match_type, campaign_name,
+          SUM(impressions) AS impressions,
+          SUM(clicks) AS clicks,
+          ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
+          ROUND(SUM(conversions), 2) AS conversions,
+          ROUND(SUM(conversions_value), 2) AS conv_value,
+          ROUND(SUM(cost_micros)/NULLIF(SUM(clicks),0)/1000000, 2) AS avg_cpc,
+          ROUND(SUM(clicks)/NULLIF(SUM(impressions),0)*100, 2) AS ctr_pct
+        FROM \`pricefox-ads-pipeline.${dataset}.search_terms_report\`
+        WHERE date BETWEEN '${startDate}' AND '${endDate}' ${cf}
+        GROUP BY search_term, keyword_text, keyword_match_type, campaign_name
+        ORDER BY cost_eur DESC LIMIT 1000
+      `);
+    }
+
+    function bqAdsDeviceQuery(startDate, endDate, dataset) {
+      const acctLabel = dataset === BQ_CI_DATASET ? 'CI' : 'Energy';
+      return bqQuery(`
+        SELECT
+          '${acctLabel}' AS account, device,
+          SUM(impressions) AS impressions,
+          SUM(clicks) AS clicks,
+          ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
+          ROUND(SUM(conversions), 2) AS conversions,
+          ROUND(SUM(conversions_value), 2) AS conv_value,
+          ROUND(SUM(clicks)/NULLIF(SUM(impressions),0)*100, 2) AS ctr_pct,
+          ROUND(SUM(conversions)/NULLIF(SUM(clicks),0)*100, 2) AS cvr_pct
+        FROM \`pricefox-ads-pipeline.${dataset}.device_performance\`
+        WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        GROUP BY device ORDER BY cost_eur DESC
+      `);
+    }
+
+    function bqAdsGeoQuery(startDate, endDate, dataset) {
+      const acctLabel = dataset === BQ_CI_DATASET ? 'CI' : 'Energy';
+      return bqQuery(`
+        SELECT
+          '${acctLabel}' AS account,
+          COALESCE(NULLIF(geo_target_city,''), NULLIF(geo_target_region,''), 'Unknown') AS location,
+          COALESCE(NULLIF(geo_target_region,''), 'Unknown') AS region,
+          SUM(impressions) AS impressions,
+          SUM(clicks) AS clicks,
+          ROUND(SUM(cost_micros)/1000000, 2) AS cost_eur,
+          ROUND(SUM(conversions), 2) AS conversions,
+          ROUND(SUM(conversions_value), 2) AS conv_value,
+          ROUND(SUM(clicks)/NULLIF(SUM(impressions),0)*100, 2) AS ctr_pct,
+          ROUND(SUM(conversions)/NULLIF(SUM(clicks),0)*100, 2) AS cvr_pct
+        FROM \`pricefox-ads-pipeline.${dataset}.geographic_performance\`
+        WHERE date BETWEEN '${startDate}' AND '${endDate}' AND impressions > 0
+        GROUP BY location, region ORDER BY cost_eur DESC LIMIT 100
+      `);
+    }
+
+    function bqAdsConvActionsQuery(startDate, endDate, dataset) {
+      const acctLabel = dataset === BQ_CI_DATASET ? 'CI' : 'Energy';
+      return bqQuery(`
+        SELECT
+          '${acctLabel}' AS account,
+          conversion_action_name, conversion_action_category,
+          SUM(conversions) AS conversions,
+          ROUND(SUM(conversions_value), 2) AS conv_value,
+          SUM(all_conversions) AS all_conversions,
+          ROUND(SUM(all_conversions_value), 2) AS all_conv_value,
+          COUNT(DISTINCT campaign_name) AS campaigns
+        FROM \`pricefox-ads-pipeline.${dataset}.conversion_actions\`
+        WHERE date BETWEEN '${startDate}' AND '${endDate}'
+        GROUP BY conversion_action_name, conversion_action_category
+        ORDER BY conversions DESC
       `);
     }
 
@@ -3836,9 +4120,12 @@
     }
 
     // ===================== BQ ADS DATA PARSERS =====================
+    let ADS_KEYWORDS = [], ADS_DEVICES = [], ADS_GEO = [], ADS_CONV_ACTIONS = [], ADS_SEARCH_TERMS_BQ = [];
+
     function processBqCampaignData(rows) {
       if (!rows || !rows.length) return [];
       return rows.map(r => ({
+        account: r.account || '—',
         name: r.campaign_name || '(unknown)',
         cost: parseFloat(r.cost_eur) || 0,
         clicks: parseInt(r.clicks) || 0,
@@ -3864,6 +4151,59 @@
         sessions: 0
       })).sort((a, b) => a.date.localeCompare(b.date));
     }
+    function processBqKeywords(rows) {
+      if (!rows || !rows.length) return [];
+      return rows.map(r => ({
+        account: r.account || '—', keyword: r.keyword_text || '',
+        match_type: r.keyword_match_type || '', campaign: r.campaign_name || '',
+        cost: parseFloat(r.cost_eur) || 0, clicks: parseInt(r.clicks) || 0,
+        impressions: parseInt(r.impressions) || 0, conversions: parseFloat(r.conversions) || 0,
+        conv_value: parseFloat(r.conv_value) || 0, cpa: parseFloat(r.cpa) || 0,
+        ctr: parseFloat(r.ctr_pct) || 0, cvr: parseFloat(r.cvr_pct) || 0,
+        avg_cpc: parseFloat(r.avg_cpc) || 0, avg_qs: parseFloat(r.avg_qs) || 0
+      }));
+    }
+    function processBqSearchTermsBq(rows) {
+      if (!rows || !rows.length) return [];
+      return rows.map(r => ({
+        account: r.account || '—', query: r.search_term || '',
+        keyword: r.keyword_text || '', match_type: r.keyword_match_type || '',
+        campaign: r.campaign_name || '', cost: parseFloat(r.cost_eur) || 0,
+        clicks: parseInt(r.clicks) || 0, impressions: parseInt(r.impressions) || 0,
+        conversions: parseFloat(r.conversions) || 0, conv_value: parseFloat(r.conv_value) || 0,
+        avg_cpc: parseFloat(r.avg_cpc) || 0, ctr: parseFloat(r.ctr_pct) || 0, sessions: 0
+      }));
+    }
+    function processBqDevices(rows) {
+      if (!rows || !rows.length) return [];
+      return rows.map(r => ({
+        account: r.account || '—', device: r.device || '',
+        cost: parseFloat(r.cost_eur) || 0, clicks: parseInt(r.clicks) || 0,
+        impressions: parseInt(r.impressions) || 0, conversions: parseFloat(r.conversions) || 0,
+        conv_value: parseFloat(r.conv_value) || 0, ctr: parseFloat(r.ctr_pct) || 0,
+        cvr: parseFloat(r.cvr_pct) || 0
+      }));
+    }
+    function processBqGeo(rows) {
+      if (!rows || !rows.length) return [];
+      return rows.map(r => ({
+        account: r.account || '—', location: r.location || 'Unknown', region: r.region || '',
+        cost: parseFloat(r.cost_eur) || 0, clicks: parseInt(r.clicks) || 0,
+        impressions: parseInt(r.impressions) || 0, conversions: parseFloat(r.conversions) || 0,
+        conv_value: parseFloat(r.conv_value) || 0, ctr: parseFloat(r.ctr_pct) || 0,
+        cvr: parseFloat(r.cvr_pct) || 0
+      }));
+    }
+    function processBqConvActions(rows) {
+      if (!rows || !rows.length) return [];
+      return rows.map(r => ({
+        account: r.account || '—', name: r.conversion_action_name || '',
+        category: r.conversion_action_category || '',
+        conversions: parseFloat(r.conversions) || 0, conv_value: parseFloat(r.conv_value) || 0,
+        all_conversions: parseFloat(r.all_conversions) || 0,
+        all_conv_value: parseFloat(r.all_conv_value) || 0, campaigns: parseInt(r.campaigns) || 0
+      }));
+    }
 
     // ===================== BQ ADS LOADER =====================
     async function loadBqAdsData() {
@@ -3878,11 +4218,15 @@
         const endDate = document.getElementById('endDate').value;
         const account = document.getElementById('bqAdsAccount').value;
         const datasets = account === 'ci' ? [BQ_CI_DATASET] : account === 'en' ? [BQ_EN_DATASET] : [BQ_CI_DATASET, BQ_EN_DATASET];
-        const [campResults, dailyResults] = await Promise.all([
+        const [campResults, dailyResults, kwdResults, deviceResults, geoResults, convResults] = await Promise.all([
           Promise.all(datasets.map(ds => bqAdsCampaignQuery(startDate, endDate, ds))),
-          Promise.all(datasets.map(ds => bqAdsDailyQuery(startDate, endDate, ds)))
+          Promise.all(datasets.map(ds => bqAdsDailyQuery(startDate, endDate, ds))),
+          Promise.all(datasets.map(ds => bqAdsKeywordsQuery(startDate, endDate, ds))),
+          Promise.all(datasets.map(ds => bqAdsDeviceQuery(startDate, endDate, ds))),
+          Promise.all(datasets.map(ds => bqAdsGeoQuery(startDate, endDate, ds))),
+          Promise.all(datasets.map(ds => bqAdsConvActionsQuery(startDate, endDate, ds)))
         ]);
-        // Merge campaign results from both datasets
+        // Merge results from both datasets
         const allCamp = campResults.flat();
         const allDaily = dailyResults.flat();
         // Aggregate daily by date
@@ -3897,10 +4241,17 @@
         });
         ADS_DATA = processBqCampaignData(allCamp);
         ADS_DAILY = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+        ADS_KEYWORDS = processBqKeywords(kwdResults.flat());
+        ADS_DEVICES = processBqDevices(deviceResults.flat());
+        ADS_GEO = processBqGeo(geoResults.flat());
+        ADS_CONV_ACTIONS = processBqConvActions(convResults.flat());
         applyAdsFilter();
         populateCampaignSelects();
         renderAdsOverviewCharts();
         populateAdsDatalist();
+        renderKeywordsTab();
+        renderDeviceGeoTab();
+        renderConvActionsTab();
         const totalConv = ADS_DATA.reduce((s, r) => s + r.conversions, 0);
         const totalSpend = ADS_DATA.reduce((s, r) => s + r.cost, 0);
         status.textContent = `✅ ${ADS_DATA.length} campaigns | €${totalSpend.toFixed(0)} spend | ${totalConv.toFixed(0)} conv`;
@@ -3924,6 +4275,197 @@
     document.querySelectorAll('#adsSubTabs .sub-tab').forEach(tab => {
       tab.addEventListener('click', () => switchAdsSubTab(tab.dataset.subtab));
     });
+
+    // Helper: format number with 2 decimal places, comma-separated
+    function fmtNum(v) {
+      if (v === null || v === undefined || isNaN(v)) return '0';
+      const n = parseFloat(v);
+      if (Number.isInteger(n)) return n.toLocaleString();
+      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    // Helper: download array as CSV
+    function downloadCSV(rows, headers, filename) {
+      const lines = [headers.join(','), ...rows.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(','))];
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(lines.join('\n'));
+      a.download = filename; a.click();
+    }
+
+    // Helper: simple pagination (different from the state-based renderPagination)
+    function renderSimplePagination(infoId, btnsId, page, totalPages, total, onPage) {
+      const infoEl = document.getElementById(infoId);
+      const btnsEl = document.getElementById(btnsId);
+      if (!infoEl || !btnsEl) return;
+      if (totalPages <= 1) { infoEl.textContent = total.toLocaleString() + ' results'; btnsEl.innerHTML = ''; return; }
+      infoEl.textContent = 'Page ' + page + ' of ' + totalPages + ' (' + total.toLocaleString() + ')';
+      let html = '';
+      if (page > 1) html += '<button class="btn-sm btn-outline" data-p="' + (page - 1) + '">←</button>';
+      for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++)
+        html += '<button class="btn-sm ' + (i === page ? '' : 'btn-outline') + '" data-p="' + i + '">' + i + '</button>';
+      if (page < totalPages) html += '<button class="btn-sm btn-outline" data-p="' + (page + 1) + '">→</button>';
+      btnsEl.innerHTML = html;
+      btnsEl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => onPage(parseInt(b.dataset.p))));
+    }
+
+    // ===================== KEYWORDS TAB =====================
+    let kwdSortCol = 'cost', kwdSortDir = -1, kwdPage = 1;
+    function renderKeywordsTab() {
+      const wrap = document.getElementById('kwdTableWrap');
+      const empty = document.getElementById('kwdEmpty');
+      if (!ADS_KEYWORDS || !ADS_KEYWORDS.length) { wrap.style.display = 'none'; empty.style.display = ''; return; }
+      const acct = document.getElementById('kwdAcctSelect').value;
+      const search = (document.getElementById('kwdSearch').value || '').toLowerCase();
+      let rows = ADS_KEYWORDS.filter(r => {
+        if (acct !== 'both' && r.account !== acct) return false;
+        if (search && !r.keyword.toLowerCase().includes(search) && !r.campaign.toLowerCase().includes(search)) return false;
+        return true;
+      });
+      rows.sort((a, b) => kwdSortDir * ((a[kwdSortCol] || 0) < (b[kwdSortCol] || 0) ? -1 : 1));
+      const perPage = parseInt(document.getElementById('kwdPerPage').value) || rows.length;
+      const totalPages = perPage ? Math.ceil(rows.length / perPage) : 1;
+      kwdPage = Math.min(kwdPage, totalPages || 1);
+      const sliced = perPage ? rows.slice((kwdPage - 1) * perPage, kwdPage * perPage) : rows;
+      document.getElementById('kwdResultCount').textContent = rows.length;
+      document.getElementById('kwdBody').innerHTML = sliced.map((r, i) => `
+        <tr>
+          <td>${(kwdPage - 1) * (perPage || 0) + i + 1}</td>
+          <td>${escHtml(r.keyword)}</td>
+          <td style="font-size:0.8em;color:var(--muted)">${escHtml(r.campaign)}</td>
+          <td class="num">€${fmtNum(r.cost)}</td>
+          <td class="num">${fmtNum(r.clicks)}</td>
+          <td class="num">${fmtNum(r.impressions)}</td>
+          <td class="num">${fmtNum(r.ctr)}%</td>
+          <td class="num">€${fmtNum(r.cpc)}</td>
+          <td class="num">${fmtNum(r.conversions)}</td>
+          <td class="num">${r.cpa ? '€' + fmtNum(r.cpa) : '—'}</td>
+          <td class="num">${r.quality_score || '—'}</td>
+        </tr>`).join('');
+      wrap.style.display = ''; empty.style.display = 'none';
+      renderSimplePagination('kwdPagInfo', 'kwdPagBtns', kwdPage, totalPages, rows.length, p => { kwdPage = p; renderKeywordsTab(); });
+    }
+    document.getElementById('kwdSearch').addEventListener('input', () => { kwdPage = 1; renderKeywordsTab(); });
+    document.getElementById('kwdPerPage').addEventListener('change', () => { kwdPage = 1; renderKeywordsTab(); });
+    document.getElementById('kwdAcctSelect').addEventListener('change', () => { kwdPage = 1; renderKeywordsTab(); });
+    document.getElementById('kwdTable').addEventListener('click', e => {
+      const th = e.target.closest('th[data-col]'); if (!th) return;
+      const col = th.dataset.col;
+      if (kwdSortCol === col) kwdSortDir *= -1; else { kwdSortCol = col; kwdSortDir = -1; }
+      kwdPage = 1; renderKeywordsTab();
+    });
+    document.getElementById('kwdExport').addEventListener('click', () => {
+      if (!ADS_KEYWORDS.length) return;
+      downloadCSV(ADS_KEYWORDS.map(r => [r.keyword, r.campaign, r.cost, r.clicks, r.impressions, r.ctr, r.cpc, r.conversions, r.cpa, r.quality_score]),
+        ['Keyword','Campaign','Cost','Clicks','Impressions','CTR%','CPC','Conversions','CPA','QS'], 'ads_keywords.csv');
+    });
+
+    // ===================== DEVICE / GEO TAB =====================
+    let adsGeoPage = 1, adsGeoSortCol = 'conversions', adsGeoSortDir = -1;
+    function renderDeviceGeoTab() {
+      if (!ADS_DEVICES.length) return;
+      // Device aggregation
+      const deviceByName = {};
+      ADS_DEVICES.forEach(r => {
+        if (!deviceByName[r.device]) deviceByName[r.device] = { clicks: 0, cost: 0, conversions: 0 };
+        deviceByName[r.device].clicks += r.clicks;
+        deviceByName[r.device].cost += r.cost;
+        deviceByName[r.device].conversions += r.conversions;
+      });
+      const deviceLabels = Object.keys(deviceByName);
+      if (adsCharts.deviceChart) { adsCharts.deviceChart.destroy(); delete adsCharts.deviceChart; }
+      adsCharts.deviceChart = new Chart(document.getElementById('adsDeviceChart').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: deviceLabels, datasets: [{ data: deviceLabels.map(d => deviceByName[d].clicks), backgroundColor: ['#667eea','#764ba2','#f6ad55','#68d391'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#9ca3af' } } } }
+      });
+      document.getElementById('deviceBody').innerHTML = deviceLabels.map(d => {
+        const r = deviceByName[d];
+        return `<tr><td>${d}</td><td class="num">${fmtNum(r.clicks)}</td><td class="num">€${fmtNum(r.cost)}</td><td class="num">${fmtNum(r.conversions)}</td><td class="num">${r.clicks ? (r.conversions/r.clicks*100).toFixed(1) : '—'}%</td><td class="num">${r.conversions ? '€'+fmtNum(r.cost/r.conversions) : '—'}</td></tr>`;
+      }).join('');
+      // Network aggregation
+      const netByName = {};
+      ADS_DEVICES.forEach(r => {
+        const net = r.ad_network_type || 'Unknown';
+        if (!netByName[net]) netByName[net] = { clicks: 0, cost: 0, conversions: 0 };
+        netByName[net].clicks += r.clicks; netByName[net].cost += r.cost; netByName[net].conversions += r.conversions;
+      });
+      const netLabels = Object.keys(netByName);
+      if (adsCharts.networkChart) { adsCharts.networkChart.destroy(); delete adsCharts.networkChart; }
+      adsCharts.networkChart = new Chart(document.getElementById('adsNetworkChart').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: netLabels, datasets: [{ data: netLabels.map(n => netByName[n].clicks), backgroundColor: ['#48bb78','#4299e1','#ed8936','#e53e3e','#9f7aea'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#9ca3af' } } } }
+      });
+      document.getElementById('networkBody').innerHTML = netLabels.map(n => {
+        const r = netByName[n];
+        return `<tr><td>${n}</td><td class="num">${fmtNum(r.clicks)}</td><td class="num">€${fmtNum(r.cost)}</td><td class="num">${fmtNum(r.conversions)}</td><td class="num">${r.clicks ? (r.conversions/r.clicks*100).toFixed(1) : '—'}%</td><td class="num">${r.conversions ? '€'+fmtNum(r.cost/r.conversions) : '—'}</td></tr>`;
+      }).join('');
+      renderAdsGeoTable();
+    }
+    function renderAdsGeoTable() {
+      const search = (document.getElementById('geoSearch').value || '').toLowerCase();
+      let rows = ADS_GEO.filter(r => !search || r.location.toLowerCase().includes(search));
+      rows.sort((a, b) => adsGeoSortDir * ((a[adsGeoSortCol] || 0) < (b[adsGeoSortCol] || 0) ? -1 : 1));
+      const perPage = parseInt(document.getElementById('geoPerPage').value) || 25;
+      const totalPages = Math.ceil(rows.length / perPage) || 1;
+      adsGeoPage = Math.min(adsGeoPage, totalPages);
+      const sliced = rows.slice((adsGeoPage - 1) * perPage, adsGeoPage * perPage);
+      document.getElementById('geoResultCount').textContent = rows.length;
+      document.getElementById('geoBody').innerHTML = sliced.map((r, i) => `
+        <tr>
+          <td>${(adsGeoPage - 1) * perPage + i + 1}</td>
+          <td>${escHtml(r.location)}</td>
+          <td class="num">${fmtNum(r.clicks)}</td>
+          <td class="num">€${fmtNum(r.cost)}</td>
+          <td class="num">${fmtNum(r.conversions)}</td>
+          <td class="num">${r.cpa ? '€' + fmtNum(r.cpa) : '—'}</td>
+          <td class="num">${fmtNum(r.ctr)}%</td>
+        </tr>`).join('');
+      renderSimplePagination('geoPagInfo', 'geoPagBtns', adsGeoPage, totalPages, rows.length, p => { adsGeoPage = p; renderAdsGeoTable(); });
+    }
+    document.getElementById('geoSearch').addEventListener('input', () => { adsGeoPage = 1; renderAdsGeoTable(); });
+    document.getElementById('geoPerPage').addEventListener('change', () => { adsGeoPage = 1; renderAdsGeoTable(); });
+    document.getElementById('geoTable').addEventListener('click', e => {
+      const th = e.target.closest('th[data-col]'); if (!th) return;
+      const col = th.dataset.col;
+      if (adsGeoSortCol === col) adsGeoSortDir *= -1; else { adsGeoSortCol = col; adsGeoSortDir = -1; }
+      adsGeoPage = 1; renderAdsGeoTable();
+    });
+
+    // ===================== CONV ACTIONS TAB =====================
+    function renderConvActionsTab() {
+      if (!ADS_CONV_ACTIONS.length) return;
+      const ciRows = ADS_CONV_ACTIONS.filter(r => r.account === 'CI');
+      const enRows = ADS_CONV_ACTIONS.filter(r => r.account === 'Energy');
+      const ciByAction = {};
+      ciRows.forEach(r => { ciByAction[r.action_name] = (ciByAction[r.action_name] || 0) + r.conversions; });
+      const ciLabels = Object.keys(ciByAction).sort((a, b) => ciByAction[b] - ciByAction[a]).slice(0, 8);
+      if (adsCharts.convCiChart) { adsCharts.convCiChart.destroy(); delete adsCharts.convCiChart; }
+      adsCharts.convCiChart = new Chart(document.getElementById('adsConvCiChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: ciLabels, datasets: [{ label: 'Conversions', data: ciLabels.map(k => ciByAction[k]), backgroundColor: 'rgba(102,126,234,0.7)', borderColor: '#667eea', borderWidth: 1 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+      });
+      const enByAction = {};
+      enRows.forEach(r => { enByAction[r.action_name] = (enByAction[r.action_name] || 0) + r.conversions; });
+      const enLabels = Object.keys(enByAction).sort((a, b) => enByAction[b] - enByAction[a]).slice(0, 8);
+      if (adsCharts.convEnChart) { adsCharts.convEnChart.destroy(); delete adsCharts.convEnChart; }
+      adsCharts.convEnChart = new Chart(document.getElementById('adsConvEnChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: enLabels, datasets: [{ label: 'Conversions', data: enLabels.map(k => enByAction[k]), backgroundColor: 'rgba(118,75,162,0.7)', borderColor: '#764ba2', borderWidth: 1 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+      });
+      const rows = [...ADS_CONV_ACTIONS].sort((a, b) => b.conversions - a.conversions);
+      document.getElementById('convBody').innerHTML = rows.map(r => `
+        <tr>
+          <td><span style="background:${r.account==='CI'?'#667eea':'#764ba2'};color:#fff;padding:2px 6px;border-radius:4px;font-size:0.75em">${r.account}</span></td>
+          <td>${escHtml(r.action_name)}</td>
+          <td style="font-size:0.8em;color:var(--muted)">${escHtml(r.category || '')}</td>
+          <td class="num">${fmtNum(r.conversions)}</td>
+          <td class="num">${fmtNum(r.all_conversions)}</td>
+          <td class="num">€${fmtNum(r.conv_value)}</td>
+          <td class="num">${r.cpa ? '€' + fmtNum(r.cpa) : '—'}</td>
+        </tr>`).join('');
+    }
 
     function populateCampaignSelects() {
       if (!ADS_DATA) return;
