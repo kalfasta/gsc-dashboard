@@ -1729,12 +1729,13 @@
               <tr>
                 <th data-col="rank">#</th>
                 <th data-col="query">Search Term</th>
+                <th data-col="keyword">Matched Keyword</th>
+                <th data-col="campaign">Campaign</th>
                 <th data-col="cost" class="num">Cost</th>
                 <th data-col="clicks" class="num">Clicks</th>
                 <th data-col="impressions" class="num">Impr</th>
-                <th data-col="sessions" class="num">Sessions</th>
                 <th data-col="ctr" class="num">CTR</th>
-                <th data-col="cpc" class="num">Avg CPC</th>
+                <th data-col="avg_cpc" class="num">Avg CPC</th>
                 <th data-col="conversions" class="num">Conv</th>
               </tr>
             </thead>
@@ -4367,16 +4368,20 @@
       document.getElementById('kwdBody').innerHTML = sliced.map((r, i) => `
         <tr>
           <td>${(kwdPage - 1) * (perPage || 0) + i + 1}</td>
-          <td>${escHtml(r.keyword)}</td>
+          <td>
+            <span style="font-size:10px;padding:1px 5px;border-radius:3px;margin-right:4px;background:${r.account==='CI'?'rgba(99,102,241,0.2)':'rgba(34,197,94,0.2)'};color:${r.account==='CI'?'#818cf8':'#4ade80'}">${escHtml(r.account)}</span>
+            ${escHtml(r.keyword)}
+            <span style="font-size:10px;color:var(--muted);margin-left:4px">[${escHtml(r.match_type||'')}]</span>
+          </td>
           <td style="font-size:0.8em;color:var(--muted)">${escHtml(r.campaign)}</td>
           <td class="num">€${fmtNum(r.cost)}</td>
           <td class="num">${fmtNum(r.clicks)}</td>
           <td class="num">${fmtNum(r.impressions)}</td>
           <td class="num">${fmtNum(r.ctr)}%</td>
-          <td class="num">€${fmtNum(r.cpc)}</td>
+          <td class="num">€${fmtNum(r.avg_cpc)}</td>
           <td class="num">${fmtNum(r.conversions)}</td>
           <td class="num">${r.cpa ? '€' + fmtNum(r.cpa) : '—'}</td>
-          <td class="num">${r.quality_score || '—'}</td>
+          <td class="num" style="color:${r.avg_qs>=7?'#4ade80':r.avg_qs>=5?'#eab308':'#f87171'}">${r.avg_qs || '—'}</td>
         </tr>`).join('');
       wrap.style.display = ''; empty.style.display = 'none';
       renderSimplePagination('kwdPagInfo', 'kwdPagBtns', kwdPage, totalPages, rows.length, p => { kwdPage = p; renderKeywordsTab(); });
@@ -4392,8 +4397,8 @@
     });
     document.getElementById('kwdExport').addEventListener('click', () => {
       if (!ADS_KEYWORDS.length) return;
-      downloadCSV(ADS_KEYWORDS.map(r => [r.keyword, r.campaign, r.cost, r.clicks, r.impressions, r.ctr, r.cpc, r.conversions, r.cpa, r.quality_score]),
-        ['Keyword','Campaign','Cost','Clicks','Impressions','CTR%','CPC','Conversions','CPA','QS'], 'ads_keywords.csv');
+      downloadCSV(ADS_KEYWORDS.map(r => [r.account, r.keyword, r.match_type, r.campaign, r.cost, r.clicks, r.impressions, r.ctr, r.avg_cpc, r.conversions, r.cpa, r.avg_qs]),
+        ['Account','Keyword','Match Type','Campaign','Cost','Clicks','Impressions','CTR%','Avg CPC','Conversions','CPA','QS'], 'ads_keywords.csv');
     });
 
     // ===================== DEVICE / GEO TAB =====================
@@ -4598,6 +4603,7 @@
       document.getElementById('adsBody').innerHTML = slice.map((r, i) =>
         '<tr>' +
         '<td>' + (start + i + 1) + '</td>' +
+        '<td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + (r.account==='CI'?'rgba(99,102,241,0.2)':'rgba(34,197,94,0.2)') + ';color:' + (r.account==='CI'?'#818cf8':'#4ade80') + '">' + escHtml(r.account||'—') + '</span></td>' +
         '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.name) + '">' +
           '<a class="campaign-link" data-campaign="' + escHtml(r.name) + '">' + escHtml(r.name) + '</a></td>' +
         '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
@@ -4629,25 +4635,29 @@
 
     // ===================== SEARCH TERMS =====================
     async function loadSearchTerms(campaignName) {
-      if (!campaignName || !accessToken) return;
+      if (!campaignName) return;
       selectedCampaignST = campaignName;
       document.getElementById('stCampaignName').textContent = campaignName;
       document.getElementById('stEmpty').style.display = 'none';
       document.getElementById('stLoading').style.display = 'block';
+      document.getElementById('stLoading').textContent = 'Loading search terms from BigQuery...';
       document.getElementById('stTableWrap').style.display = 'none';
 
-      const startDate = document.getElementById('startDate').value;
-      const endDate = document.getElementById('endDate').value;
+      const startDate = formatDateForBQ(document.getElementById('startDate').value);
+      const endDate = formatDateForBQ(document.getElementById('endDate').value);
 
       try {
-        const data = await ga4AdsSearchTermsQuery(startDate, endDate, campaignName);
-        ADS_SEARCH_TERMS = processAdsRows(data, 'query');
+        // Determine which datasets to query based on account selector
+        const acctFilter = document.getElementById('bqAccountSelect') ? document.getElementById('bqAccountSelect').value : 'all';
+        const datasets = acctFilter === 'ci' ? [BQ_CI_DATASET] : acctFilter === 'energy' ? [BQ_EN_DATASET] : [BQ_CI_DATASET, BQ_EN_DATASET];
+        const results = await Promise.all(datasets.map(ds => bqAdsSearchTermsBqQuery(startDate, endDate, ds, campaignName)));
+        ADS_SEARCH_TERMS = processBqSearchTermsBq(results.flat());
         stState.page = 1;
         applySearchTermsFilter();
         document.getElementById('stLoading').style.display = 'none';
         document.getElementById('stTableWrap').style.display = '';
       } catch (e) {
-        document.getElementById('stLoading').textContent = 'Error: ' + e.message;
+        document.getElementById('stLoading').textContent = '❌ Error: ' + e.message;
         console.error('Search terms error:', e);
       }
     }
@@ -4704,13 +4714,14 @@
         '<tr>' +
         '<td>' + (start + i + 1) + '</td>' +
         '<td class="kw-cell" title="' + escHtml(r.query) + '">' + escHtml(r.query) + '</td>' +
+        '<td style="font-size:11px;color:var(--muted)">' + escHtml(r.keyword||'—') + ' <span style="opacity:0.6">[' + escHtml(r.match_type||'') + ']</span></td>' +
+        '<td style="font-size:11px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.campaign||'') + '">' + escHtml(r.campaign||'—') + '</td>' +
         '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
         '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
         '<td class="num">' + r.impressions.toLocaleString() + '</td>' +
-        '<td class="num" style="color:var(--purple)">' + r.sessions.toLocaleString() + '</td>' +
-        '<td class="num">' + r.ctr + '%</td>' +
-        '<td class="num">\u20AC' + r.cpc.toFixed(2) + '</td>' +
-        '<td class="num">' + r.conversions + '</td>' +
+        '<td class="num">' + (r.ctr||0) + '%</td>' +
+        '<td class="num">\u20AC' + (r.avg_cpc||0).toFixed(2) + '</td>' +
+        '<td class="num">' + (r.conversions||0) + '</td>' +
         '</tr>'
       ).join('');
 
