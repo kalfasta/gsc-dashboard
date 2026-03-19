@@ -4663,35 +4663,58 @@
     // ===================== TOP QUERIES BY SPEND =====================
     let topQChart = null;
     async function loadTopQueries() {
+      if (!accessToken) { alert('Sign in with Google first.'); return; }
       const btn = document.getElementById('topQLoadBtn');
       const spinner = document.getElementById('topQLoading');
-      btn.disabled = true; spinner.style.display = '';
-      const startDate = formatDateForBQ(document.getElementById('startDate').value);
-      const endDate   = formatDateForBQ(document.getElementById('endDate').value);
+      btn.disabled = true; spinner.style.display = ''; spinner.textContent = 'Loading…';
+      const startDate = document.getElementById('startDate').value;
+      const endDate   = document.getElementById('endDate').value;
       const acct = document.getElementById('topQAcctSelect').value;
-      const datasets = acct === 'ci' ? [BQ_CI_DATASET] : acct === 'energy' ? [BQ_EN_DATASET] : [BQ_CI_DATASET, BQ_EN_DATASET];
+
       try {
-        const results = await Promise.all(datasets.map(ds => bqAdsSearchTermsBqQuery(startDate, endDate, ds, null)));
-        const raw = processBqSearchTermsBq(results.flat());
-        // Aggregate by query across campaigns
-        const map = {};
-        raw.forEach(r => {
-          if (!map[r.query]) map[r.query] = { query: r.query, cost: 0, clicks: 0, impressions: 0, conversions: 0 };
-          map[r.query].cost += r.cost; map[r.query].clicks += r.clicks;
-          map[r.query].impressions += r.impressions; map[r.query].conversions += r.conversions;
-        });
-        const top = Object.values(map).sort((a, b) => b.cost - a.cost).slice(0, 30).map(r => ({
-          ...r,
-          avg_cpc: r.clicks > 0 ? parseFloat((r.cost / r.clicks).toFixed(2)) : 0,
-          cpa: r.conversions > 0 ? parseFloat((r.cost / r.conversions).toFixed(2)) : 0,
-          ctr: r.impressions > 0 ? parseFloat((r.clicks / r.impressions * 100).toFixed(2)) : 0
-        }));
-        renderTopQueriesChart(top);
-        renderTopQueriesTable(top);
+        // GA4: all queries, optionally filtered by account type via campaign name pattern
+        const campaignFilter = acct === 'ci'
+          ? { filter: { fieldName: 'sessionGoogleAdsCampaignName', stringFilter: { matchType: 'PARTIAL_REGEXP', value: 'CI\\]' } } }
+          : acct === 'energy'
+          ? { filter: { fieldName: 'sessionGoogleAdsCampaignName', stringFilter: { matchType: 'PARTIAL_REGEXP', value: 'EN\\]' } } }
+          : null;
+
+        const reqBody = {
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: 'sessionGoogleAdsQuery' }, { name: 'sessionGoogleAdsCampaignName' }],
+          metrics: [
+            { name: 'advertiserAdCost' }, { name: 'advertiserAdClicks' },
+            { name: 'advertiserAdImpressions' }, { name: 'sessions' }, { name: 'conversions' }
+          ],
+          dimensionFilter: campaignFilter
+            ? { andGroup: { expressions: [
+                { filter: { fieldName: 'sessionGoogleAdsQuery', stringFilter: { matchType: 'FULL_REGEXP', value: '.+' } } },
+                campaignFilter
+              ]}}
+            : { filter: { fieldName: 'sessionGoogleAdsQuery', stringFilter: { matchType: 'FULL_REGEXP', value: '.+' } } },
+          orderBys: [{ metric: { metricName: 'advertiserAdCost' }, desc: true }],
+          limit: '5000'
+        };
+
+        const data = await apiPost(GA4_API, reqBody);
+        const rows = (data.rows || []).map(r => {
+          const query = r.dimensionValues[0].value || '';
+          const cost = parseFloat(r.metricValues[0].value) || 0;
+          const clicks = parseInt(r.metricValues[1].value) || 0;
+          const impressions = parseInt(r.metricValues[2].value) || 0;
+          const conversions = parseFloat(r.metricValues[4].value) || 0;
+          return { query, cost, clicks, impressions, conversions,
+            avg_cpc: clicks > 0 ? parseFloat((cost/clicks).toFixed(2)) : 0,
+            cpa: conversions > 0 ? parseFloat((cost/conversions).toFixed(2)) : 0 };
+        }).filter(r => r.query && r.query !== '(not set)').slice(0, 30);
+
+        renderTopQueriesChart(rows);
+        renderTopQueriesTable(rows);
+        spinner.style.display = 'none';
       } catch(e) {
         spinner.textContent = '❌ ' + e.message;
       } finally {
-        btn.disabled = false; if (spinner.textContent === 'Loading...') spinner.style.display = 'none';
+        btn.disabled = false;
       }
     }
 
@@ -4734,30 +4757,64 @@
 
     document.getElementById('topQLoadBtn').addEventListener('click', loadTopQueries);
 
-    // ===================== SEARCH TERMS =====================
+    // ===================== SEARCH TERMS (GA4 source — BQ search_term field is empty) =====================
     async function loadSearchTerms(campaignName) {
+      if (!accessToken) { alert('Sign in with Google first to load search terms.'); return; }
       selectedCampaignST = campaignName || '';
-      document.getElementById('stCampaignName').textContent = campaignName ? '— ' + campaignName : '';
+      document.getElementById('stCampaignName').textContent = campaignName ? '— ' + campaignName : '(all campaigns)';
       document.getElementById('stEmpty').style.display = 'none';
       document.getElementById('stLoading').style.display = 'block';
-      document.getElementById('stLoading').textContent = 'Loading search terms from BigQuery...';
+      document.getElementById('stLoading').textContent = 'Loading from GA4…';
       document.getElementById('stTableWrap').style.display = 'none';
 
-      const startDate = formatDateForBQ(document.getElementById('startDate').value);
-      const endDate = formatDateForBQ(document.getElementById('endDate').value);
+      const startDate = document.getElementById('startDate').value;
+      const endDate   = document.getElementById('endDate').value;
 
       try {
-        // Determine which datasets to query based on account selector
-        const acctFilter = document.getElementById('bqAccountSelect') ? document.getElementById('bqAccountSelect').value : 'all';
-        const datasets = acctFilter === 'ci' ? [BQ_CI_DATASET] : acctFilter === 'energy' ? [BQ_EN_DATASET] : [BQ_CI_DATASET, BQ_EN_DATASET];
-        const results = await Promise.all(datasets.map(ds => bqAdsSearchTermsBqQuery(startDate, endDate, ds, campaignName)));
-        ADS_SEARCH_TERMS = processBqSearchTermsBq(results.flat());
+        let data;
+        if (campaignName) {
+          data = await ga4AdsSearchTermsQuery(startDate, endDate, campaignName);
+        } else {
+          // All campaigns — use a broad GA4 query with no campaign filter
+          data = await apiPost(GA4_API, {
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'sessionGoogleAdsQuery' }, { name: 'sessionGoogleAdsCampaignName' }],
+            metrics: [
+              { name: 'advertiserAdCost' }, { name: 'advertiserAdClicks' },
+              { name: 'advertiserAdImpressions' }, { name: 'sessions' }, { name: 'conversions' }
+            ],
+            dimensionFilter: { filter: { fieldName: 'sessionGoogleAdsQuery', stringFilter: { matchType: 'FULL_REGEXP', value: '.+' } } },
+            orderBys: [{ metric: { metricName: 'advertiserAdCost' }, desc: true }],
+            limit: '5000'
+          });
+          // Map to same format as processAdsRows but keep campaign name
+          ADS_SEARCH_TERMS = (data.rows || []).map(r => {
+            const query = r.dimensionValues[0].value || '';
+            const campaign = r.dimensionValues[1].value || '';
+            const cost = parseFloat(r.metricValues[0].value) || 0;
+            const clicks = parseInt(r.metricValues[1].value) || 0;
+            const impressions = parseInt(r.metricValues[2].value) || 0;
+            const conversions = parseFloat(r.metricValues[4].value) || 0;
+            return { query, campaign, keyword: '', match_type: '', cost: parseFloat(cost.toFixed(2)),
+              clicks, impressions, sessions: parseInt(r.metricValues[3].value) || 0,
+              ctr: impressions > 0 ? parseFloat((clicks/impressions*100).toFixed(2)) : 0,
+              avg_cpc: clicks > 0 ? parseFloat((cost/clicks).toFixed(2)) : 0,
+              conversions: parseFloat(conversions.toFixed(1)),
+              cpa: conversions > 0 ? parseFloat((cost/conversions).toFixed(2)) : 0 };
+          }).filter(r => r.query && r.query !== '(not set)');
+          stState.page = 1;
+          applySearchTermsFilter();
+          document.getElementById('stLoading').style.display = 'none';
+          document.getElementById('stTableWrap').style.display = '';
+          return;
+        }
+        ADS_SEARCH_TERMS = processAdsRows(data, 'query');
         stState.page = 1;
         applySearchTermsFilter();
         document.getElementById('stLoading').style.display = 'none';
         document.getElementById('stTableWrap').style.display = '';
       } catch (e) {
-        document.getElementById('stLoading').textContent = '❌ Error: ' + e.message;
+        document.getElementById('stLoading').textContent = '❌ ' + e.message;
         console.error('Search terms error:', e);
       }
     }
