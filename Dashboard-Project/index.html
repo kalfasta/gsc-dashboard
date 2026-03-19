@@ -2603,25 +2603,21 @@
     }
 
     // ===================== BIGQUERY ADS API =====================
+    const BQ_WORKER_URL = 'https://patient-bird-ad34.tkalfas.workers.dev/bq';
+
     async function bqQuery(sql) {
-      const resp = await fetch(BQ_API_BASE + '/queries', {
+      const resp = await fetch(BQ_WORKER_URL, {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: sql, useLegacySql: false, location: 'EU', timeoutMs: 30000 })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sql })
       });
       if (!resp.ok) {
         let err; try { err = await resp.json(); } catch(e) { err = {}; }
-        throw new Error(err.error?.message || 'BigQuery error ' + resp.status);
+        throw new Error(err.error || 'BigQuery worker error ' + resp.status);
       }
       const data = await resp.json();
-      if (!data.jobComplete) throw new Error('BigQuery job timed out — try again');
-      if (!data.rows) return [];
-      const fields = data.schema.fields.map(f => f.name);
-      return data.rows.map(row => {
-        const obj = {};
-        row.f.forEach((cell, i) => { obj[fields[i]] = cell.v; });
-        return obj;
-      });
+      if (data.error) throw new Error(data.error);
+      return data.rows || [];
     }
 
     function bqAdsCampaignQuery(startDate, endDate, dataset) {
