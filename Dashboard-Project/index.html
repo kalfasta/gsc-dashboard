@@ -4067,7 +4067,7 @@
 
       // Top Campaigns by Spend
       if (ADS_DATA && ADS_DATA.length > 0) {
-        const shortName = n => n.replace(/^S\[.+?\]:\s*/,'').length > 28 ? n.replace(/^S\[.+?\]:\s*/,'').slice(0,26)+'…' : n.replace(/^S\[.+?\]:\s*/,'');
+        const shortName = n => { const s = String(n || '').replace(/^S\[.+?\]:\s*/,''); return s.length > 28 ? s.slice(0,26)+'…' : s; };
         const top10spend = [...ADS_DATA].sort((a, b) => b.cost - a.cost).slice(0, 10);
         const ctx3 = document.getElementById('adsTopSpendChart').getContext('2d');
         adsCharts.topSpend = new Chart(ctx3, {
