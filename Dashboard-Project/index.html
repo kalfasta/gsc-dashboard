@@ -214,6 +214,45 @@
       font-weight: 400
     }
 
+    /* Chart info tooltip */
+    .chart-info {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px; height: 15px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      color: #9ca3af;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: help;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .chart-info::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 400;
+      line-height: 1.5;
+      padding: 8px 11px;
+      border-radius: 7px;
+      white-space: pre-wrap;
+      width: 240px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      z-index: 999;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .chart-info:hover::after { opacity: 1; }
+
     .chart-box {
       position: relative;
       height: 240px
@@ -1573,32 +1612,32 @@
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="card">
-          <h2>Daily Spend & Conversions</h2>
+          <h2>Daily Spend & Conversions <span class="chart-info" data-tip="Spend: SUM(cost_micros)/1,000,000&#10;Conversions: SUM(conversions)&#10;Grouped by date, deduplicated&#10;by (date, campaign, device, network, hour)">ℹ</span></h2>
           <div style="height:280px"><canvas id="adsDailySpendChart"></canvas></div>
         </div>
         <div class="card">
-          <h2>Daily Clicks & Impressions</h2>
+          <h2>Daily Clicks & Impressions <span class="chart-info" data-tip="Clicks: SUM(clicks)&#10;Impressions: SUM(impressions)&#10;Grouped by date, deduplicated&#10;by (date, campaign, device, network, hour)">ℹ</span></h2>
           <div style="height:280px"><canvas id="adsDailyClicksChart"></canvas></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="card">
-          <h2>Top Campaigns by Spend</h2>
+          <h2>Top Campaigns by Spend <span class="chart-info" data-tip="Top 10 campaigns ranked by total spend.&#10;Spend = SUM(cost_micros) / 1,000,000&#10;Source: campaign_performance table">ℹ</span></h2>
           <div style="height:320px"><canvas id="adsTopSpendChart"></canvas></div>
         </div>
         <div class="card">
-          <h2>Top Campaigns by Conversions</h2>
+          <h2>Top Campaigns by Conversions <span class="chart-info" data-tip="Top 10 campaigns ranked by total conversions.&#10;Conversions = SUM(conversions)&#10;Includes all conversion actions tracked&#10;in the Google Ads account.">ℹ</span></h2>
           <div style="height:320px"><canvas id="adsTopConvChart"></canvas></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="card">
-          <h2>CPA by Campaign (lower = better)</h2>
+          <h2>CPA by Campaign <span class="chart-info" data-tip="Cost Per Acquisition (lower = better).&#10;CPA = Spend / Conversions&#10;🟢 &lt;€10 · 🟡 €10–30 · 🔴 &gt;€30&#10;Only campaigns with conversions shown.">ℹ</span></h2>
           <div style="height:320px"><canvas id="adsCpaChart"></canvas></div>
         </div>
         <div class="card">
-          <h2>ROAS by Campaign (higher = better)</h2>
-          <div style="height:320px"><canvas id="adsRoasChart"></canvas></div>
+          <h2>CPC by Campaign <span class="chart-info" data-tip="Cost Per Click (lower = better).&#10;CPC = Spend / Clicks&#10;🟢 &lt;€0.50 · 🟡 €0.50–2 · 🔴 &gt;€2&#10;Only campaigns with clicks shown.">ℹ</span></h2>
+          <div style="height:320px"><canvas id="adsCpcChart"></canvas></div>
         </div>
       </div>
     </div>
@@ -4103,17 +4142,17 @@
           });
         }
 
-        // ROAS by Campaign
-        const withRoas = ADS_DATA.filter(r => r.roas > 0).sort((a, b) => b.roas - a.roas).slice(0, 10);
-        const ctx6 = document.getElementById('adsRoasChart').getContext('2d');
-        if (withRoas.length > 0) {
-          adsCharts.roas = new Chart(ctx6, {
+        // CPC by Campaign
+        const withCpc = ADS_DATA.filter(r => r.clicks > 0).map(r => ({ ...r, _cpc: r.cost / r.clicks })).sort((a, b) => a._cpc - b._cpc).slice(0, 10);
+        const ctx6 = document.getElementById('adsCpcChart').getContext('2d');
+        if (withCpc.length > 0) {
+          adsCharts.cpc = new Chart(ctx6, {
             type: 'bar',
             data: {
-              labels: withRoas.map(r => shortName(r.name)),
-              datasets: [{ label: 'ROAS', data: withRoas.map(r => r.roas), backgroundColor: withRoas.map(r => r.roas >= 3 ? 'rgba(34,197,94,0.7)' : r.roas >= 1 ? 'rgba(234,179,8,0.7)' : 'rgba(239,68,68,0.7)'), borderWidth: 1 }]
+              labels: withCpc.map(r => shortName(r.name)),
+              datasets: [{ label: 'CPC (€)', data: withCpc.map(r => r._cpc.toFixed(3)), backgroundColor: withCpc.map(r => r._cpc < 0.5 ? 'rgba(34,197,94,0.7)' : r._cpc < 2 ? 'rgba(234,179,8,0.7)' : 'rgba(239,68,68,0.7)'), borderWidth: 1 }]
             },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => v + 'x' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '€' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
           });
         }
       }
