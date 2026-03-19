@@ -1596,9 +1596,7 @@
     <div class="sub-tabs" id="adsSubTabs">
       <div class="sub-tab active" data-subtab="adsoverview">Overview</div>
       <div class="sub-tab" data-subtab="campaigns">Campaigns</div>
-      <div class="sub-tab" data-subtab="adskeywords">Ad Groups</div>
       <div class="sub-tab" data-subtab="searchterms">Search Terms</div>
-      <div class="sub-tab" data-subtab="adgroups">Ad Groups</div>
     </div>
 
     <!-- SUB: ADS OVERVIEW -->
@@ -1693,20 +1691,54 @@
 
     <!-- SUB: SEARCH TERMS -->
     <div class="sub-content" id="sub-searchterms">
-      <div class="breadcrumb" id="stBreadcrumb">
-        <a onclick="switchAdsSubTab('campaigns')">All Campaigns</a>
-        <span class="sep">›</span>
-        <span id="stCampaignName">Select a campaign</span>
+
+      <!-- TOP QUERIES SECTION -->
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h2>Top Queries by Spend <span class="chart-info" data-tip="All search terms across all campaigns, sorted by total spend.&#10;Source: search_terms_report (BigQuery)&#10;Shows where your budget actually went at query level.">ℹ</span></h2>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select id="topQAcctSelect" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:4px 8px;font-size:12px">
+              <option value="all">All Accounts</option>
+              <option value="ci">CI only</option>
+              <option value="energy">Energy only</option>
+            </select>
+            <button class="btn-sm" id="topQLoadBtn">Load Top Queries</button>
+            <div id="topQLoading" style="display:none;font-size:12px;color:var(--muted)">Loading...</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="height:260px"><canvas id="topQSpendChart"></canvas></div>
+          </div>
+          <div style="overflow-x:auto;max-height:280px;overflow-y:auto">
+            <table id="topQTable" style="font-size:12px">
+              <thead>
+                <tr>
+                  <th data-col="rank">#</th>
+                  <th data-col="query">Search Term</th>
+                  <th data-col="cost" class="num">Cost</th>
+                  <th data-col="clicks" class="num">Clicks</th>
+                  <th data-col="avg_cpc" class="num">CPC</th>
+                  <th data-col="conversions" class="num">Conv</th>
+                  <th data-col="cpa" class="num">CPA</th>
+                </tr>
+              </thead>
+              <tbody id="topQBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
+
+      <!-- DRILL DOWN BY CAMPAIGN -->
       <div class="filter-bar">
-        <h3>Campaign</h3>
+        <h3>Drill Down by Campaign</h3>
         <div class="filter-row">
           <div class="filter-group"><label>Campaign</label>
             <select id="stCampaignSelect" style="min-width:250px">
-              <option value="">— Select a campaign —</option>
+              <option value="">— All campaigns —</option>
             </select>
           </div>
-          <button class="btn-sm" id="stLoadBtn">Load Search Terms</button>
+          <button class="btn-sm" id="stLoadBtn">Load</button>
           <div class="filter-group"><label>Search</label><input type="text" id="stSearch" placeholder="Filter terms..."></div>
           <div class="filter-group"><label>Show</label>
             <select id="stPerPage">
@@ -1720,9 +1752,9 @@
         </div>
       </div>
       <div class="card">
-        <h2>Search Terms <span class="count" id="stResultCount"></span></h2>
+        <h2>Search Terms <span class="count" id="stResultCount"></span> <span id="stCampaignName" style="font-size:12px;color:var(--muted);font-weight:400"></span></h2>
         <div id="stLoading" style="display:none;text-align:center;padding:30px;color:var(--muted)">Loading search terms...</div>
-        <div id="stEmpty" style="text-align:center;padding:30px;color:var(--muted)">Select a campaign above to view its search terms.</div>
+        <div id="stEmpty" style="text-align:center;padding:30px;color:var(--muted)">Select a campaign above, or click Load to see all campaigns.</div>
         <div id="stTableWrap" style="display:none;overflow-x:auto">
           <table id="stTable">
             <thead>
@@ -1750,7 +1782,7 @@
     </div>
 
     <!-- SUB: AD GROUPS -->
-    <div class="sub-content" id="sub-adgroups">
+    <div class="sub-content" id="sub-adgroups" style="display:none!important">
       <div class="breadcrumb" id="agBreadcrumb">
         <a onclick="switchAdsSubTab('campaigns')">All Campaigns</a>
         <span class="sep">›</span>
@@ -1806,8 +1838,8 @@
       </div>
     </div>
 
-    <!-- SUB: KEYWORDS -->
-    <div class="sub-content" id="sub-adskeywords">
+    <!-- SUB: KEYWORDS (hidden - ad_group data, use Search Terms instead) -->
+    <div class="sub-content" id="sub-adskeywords" style="display:none!important">
       <div class="filter-bar">
         <h3>Ad Group Performance</h3>
         <div class="filter-row">
@@ -4508,10 +4540,11 @@
     function populateCampaignSelects() {
       if (!ADS_DATA) return;
       const names = ADS_DATA.map(r => r.name).sort();
-      ['stCampaignSelect', 'agCampaignSelect'].forEach(id => {
+      ['stCampaignSelect'].forEach(id => {
         const sel = document.getElementById(id);
+        if (!sel) return;
         const cur = sel.value;
-        sel.innerHTML = '<option value="">— Select a campaign —</option>' +
+        sel.innerHTML = '<option value="">— All campaigns —</option>' +
           names.map(n => '<option value="' + escHtml(n) + '"' + (n === cur ? ' selected' : '') + '>' + escHtml(n) + '</option>').join('');
       });
     }
@@ -4616,23 +4649,95 @@
       renderPagination('ads', adsState, total, perPage, pages, renderAdsTableWithLinks);
     }
 
-    // Click campaign → go to Search Terms
+    // Click campaign → go to Search Terms (pre-filtered)
     document.addEventListener('click', (e) => {
       const link = e.target.closest('.campaign-link');
       if (!link) return;
       const campaign = link.dataset.campaign;
       if (!campaign) return;
       document.getElementById('stCampaignSelect').value = campaign;
-      document.getElementById('agCampaignSelect').value = campaign;
       switchAdsSubTab('searchterms');
       loadSearchTerms(campaign);
     });
 
+    // ===================== TOP QUERIES BY SPEND =====================
+    let topQChart = null;
+    async function loadTopQueries() {
+      const btn = document.getElementById('topQLoadBtn');
+      const spinner = document.getElementById('topQLoading');
+      btn.disabled = true; spinner.style.display = '';
+      const startDate = formatDateForBQ(document.getElementById('startDate').value);
+      const endDate   = formatDateForBQ(document.getElementById('endDate').value);
+      const acct = document.getElementById('topQAcctSelect').value;
+      const datasets = acct === 'ci' ? [BQ_CI_DATASET] : acct === 'energy' ? [BQ_EN_DATASET] : [BQ_CI_DATASET, BQ_EN_DATASET];
+      try {
+        const results = await Promise.all(datasets.map(ds => bqAdsSearchTermsBqQuery(startDate, endDate, ds, null)));
+        const raw = processBqSearchTermsBq(results.flat());
+        // Aggregate by query across campaigns
+        const map = {};
+        raw.forEach(r => {
+          if (!map[r.query]) map[r.query] = { query: r.query, cost: 0, clicks: 0, impressions: 0, conversions: 0 };
+          map[r.query].cost += r.cost; map[r.query].clicks += r.clicks;
+          map[r.query].impressions += r.impressions; map[r.query].conversions += r.conversions;
+        });
+        const top = Object.values(map).sort((a, b) => b.cost - a.cost).slice(0, 30).map(r => ({
+          ...r,
+          avg_cpc: r.clicks > 0 ? parseFloat((r.cost / r.clicks).toFixed(2)) : 0,
+          cpa: r.conversions > 0 ? parseFloat((r.cost / r.conversions).toFixed(2)) : 0,
+          ctr: r.impressions > 0 ? parseFloat((r.clicks / r.impressions * 100).toFixed(2)) : 0
+        }));
+        renderTopQueriesChart(top);
+        renderTopQueriesTable(top);
+      } catch(e) {
+        spinner.textContent = '❌ ' + e.message;
+      } finally {
+        btn.disabled = false; if (spinner.textContent === 'Loading...') spinner.style.display = 'none';
+      }
+    }
+
+    function renderTopQueriesChart(top) {
+      if (topQChart) { topQChart.destroy(); topQChart = null; }
+      const top15 = top.slice(0, 15);
+      topQChart = new Chart(document.getElementById('topQSpendChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: top15.map(r => r.query.length > 30 ? r.query.slice(0, 28) + '…' : r.query),
+          datasets: [
+            { label: 'Spend (€)', data: top15.map(r => r.cost.toFixed(2)), backgroundColor: 'rgba(234,179,8,0.75)', yAxisID: 'y' },
+            { label: 'Conv', data: top15.map(r => r.conversions.toFixed(1)), backgroundColor: 'rgba(34,197,94,0.6)', type: 'bar', yAxisID: 'y1' }
+          ]
+        },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#9ca3af', font: { size: 11 } } } },
+          scales: {
+            x: { ticks: { color: '#eab308', callback: v => '€' + v }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { display: false } },
+            y1: { type: 'linear', position: 'right', ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } }
+          }
+        }
+      });
+    }
+
+    function renderTopQueriesTable(top) {
+      document.getElementById('topQBody').innerHTML = top.map((r, i) =>
+        '<tr>' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.query) + '">' + escHtml(r.query) + '</td>' +
+        '<td class="num"><strong style="color:var(--yellow)">€' + r.cost.toFixed(2) + '</strong></td>' +
+        '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
+        '<td class="num">€' + r.avg_cpc.toFixed(2) + '</td>' +
+        '<td class="num">' + r.conversions.toFixed(1) + '</td>' +
+        '<td class="num">' + (r.cpa > 0 ? '€' + r.cpa.toFixed(2) : '—') + '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    document.getElementById('topQLoadBtn').addEventListener('click', loadTopQueries);
+
     // ===================== SEARCH TERMS =====================
     async function loadSearchTerms(campaignName) {
-      if (!campaignName) return;
-      selectedCampaignST = campaignName;
-      document.getElementById('stCampaignName').textContent = campaignName;
+      selectedCampaignST = campaignName || '';
+      document.getElementById('stCampaignName').textContent = campaignName ? '— ' + campaignName : '';
       document.getElementById('stEmpty').style.display = 'none';
       document.getElementById('stLoading').style.display = 'block';
       document.getElementById('stLoading').textContent = 'Loading search terms from BigQuery...';
@@ -5290,12 +5395,12 @@
 
     // Search Terms Events
     document.getElementById('stLoadBtn').addEventListener('click', () => {
-      const campaign = document.getElementById('stCampaignSelect').value;
-      if (campaign) loadSearchTerms(campaign);
+      const campaign = document.getElementById('stCampaignSelect').value || null;
+      loadSearchTerms(campaign);
     });
     document.getElementById('stCampaignSelect').addEventListener('change', () => {
-      const campaign = document.getElementById('stCampaignSelect').value;
-      if (campaign) loadSearchTerms(campaign);
+      const campaign = document.getElementById('stCampaignSelect').value || null;
+      loadSearchTerms(campaign);
     });
     document.getElementById('stSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applySearchTermsFilter(); });
     document.getElementById('stPerPage').addEventListener('change', () => { stState.page = 1; renderSearchTermsTable(); });
