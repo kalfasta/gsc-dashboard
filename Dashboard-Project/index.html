@@ -1560,8 +1560,6 @@
       <div class="sub-tab" data-subtab="adskeywords">Keywords</div>
       <div class="sub-tab" data-subtab="searchterms">Search Terms</div>
       <div class="sub-tab" data-subtab="adgroups">Ad Groups</div>
-      <div class="sub-tab" data-subtab="devicegeo">Device / Geo</div>
-      <div class="sub-tab" data-subtab="convactions">Conversions</div>
     </div>
 
     <!-- SUB: ADS OVERVIEW -->
@@ -1816,8 +1814,8 @@
       </div>
     </div>
 
-    <!-- SUB: DEVICE / GEO -->
-    <div class="sub-content" id="sub-devicegeo">
+    <!-- SUB: DEVICE / GEO (removed) -->
+    <div class="sub-content" id="sub-devicegeo" style="display:none!important">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="card">
           <h2>Performance by Device</h2>
@@ -1893,8 +1891,8 @@
       </div>
     </div>
 
-    <!-- SUB: CONVERSIONS -->
-    <div class="sub-content" id="sub-convactions">
+    <!-- SUB: CONVERSIONS (removed) -->
+    <div class="sub-content" id="sub-convactions" style="display:none!important">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div class="card">
           <h2>Conversions by Action (CI)</h2>
@@ -2837,6 +2835,10 @@
           document.getElementById('mcProxyInput').value = getMcProxyUrl();
           document.getElementById('mcKeyInput').value = getMcApiKey();
           fetchMailchimpData();
+        }
+        // Auto-load BigQuery Ads data on first visit to Ads tab
+        if (tab.dataset.tab === 'ads' && accessToken && !ADS_DATA) {
+          loadBqAdsData();
         }
       });
     });
