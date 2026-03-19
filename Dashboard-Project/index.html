@@ -1562,7 +1562,7 @@
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px" id="adsKpiGrid">
       <div class="kpi">
         <div class="kpi-label">Total Spend</div>
-        <div class="kpi-value" style="color:var(--yellow)" id="kpiAdSpend">—</div>
+        <div class="kpi-value" style="color:#FF6633" id="kpiAdSpend">—</div>
         <div class="kpi-sub" id="kpiAdSpendChg"></div>
       </div>
       <div class="kpi">
@@ -4109,10 +4109,10 @@
       adsCharts.dailySpend = new Chart(document.getElementById('adsDailySpendChart').getContext('2d'), {
         type: 'line',
         data: { labels, datasets: [
-          { label: 'Spend (€)', data: daily.map(d => parseFloat(d.cost).toFixed(2)), borderColor: '#eab308', backgroundColor: 'rgba(234,179,8,0.1)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
+          { label: 'Spend (€)', data: daily.map(d => parseFloat(d.cost).toFixed(2)), borderColor: '#FF6633', backgroundColor: 'rgba(255,102,51,0.12)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
           { label: 'Conversions', data: daily.map(d => parseFloat(d.conversions||0).toFixed(1)), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0)', fill: false, tension: 0.3, pointRadius: 2, yAxisID: 'y1' }
         ]},
-        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#eab308', callback: v => '€'+v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y1: { type: 'linear', position: 'right', ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } } } }
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { color: '#9ca3af' } } }, scales: { x: { ticks: { color: '#9ca3af', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#FF6633', callback: v => '€'+v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y1: { type: 'linear', position: 'right', ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } } } }
       });
       adsCharts.dailyClicks = new Chart(document.getElementById('adsDailyClicksChart').getContext('2d'), {
         type: 'line',
@@ -4142,7 +4142,7 @@
           type: 'bar',
           data: {
             labels: top10spend.map(r => shortName(r.name)),
-            datasets: [{ label: 'Spend (€)', data: top10spend.map(r => r.cost), backgroundColor: 'rgba(234,179,8,0.7)', borderColor: '#eab308', borderWidth: 1 }]
+            datasets: [{ label: 'Spend (€)', data: top10spend.map(r => r.cost), backgroundColor: 'rgba(255,102,51,0.8)', borderColor: '#FF6633', borderWidth: 1 }]
           },
           options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9ca3af', callback: v => '€' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#9ca3af', font: { size: 11 } }, grid: { display: false } } } }
         });
@@ -4634,7 +4634,7 @@
         '<td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + (r.account==='CI'?'rgba(99,102,241,0.2)':'rgba(34,197,94,0.2)') + ';color:' + (r.account==='CI'?'#818cf8':'#4ade80') + '">' + escHtml(r.account||'—') + '</span></td>' +
         '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.name) + '">' +
           '<a class="campaign-link" data-campaign="' + escHtml(r.name) + '">' + escHtml(r.name) + '</a></td>' +
-        '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
+        '<td class="num"><strong style="color:#FF6633">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
         '<td class="num">' + (r.conversions || 0).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:1}) + '</td>' +
         '<td class="num">' + (r.conv_value > 0 ? '\u20AC' + (r.conv_value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '—') + '</td>' +
         '<td class="num">' + (r.cpa > 0 ? '\u20AC' + parseFloat(r.cpa).toFixed(2) : '—') + '</td>' +
@@ -4697,16 +4697,25 @@
         };
 
         const data = await apiPost(GA4_API, reqBody);
-        const rows = (data.rows || []).map(r => {
+        // Aggregate by query (GA4 returns one row per query+campaign combo)
+        const aggMap = {};
+        (data.rows || []).forEach(r => {
           const query = r.dimensionValues[0].value || '';
-          const cost = parseFloat(r.metricValues[0].value) || 0;
-          const clicks = parseInt(r.metricValues[1].value) || 0;
-          const impressions = parseInt(r.metricValues[2].value) || 0;
-          const conversions = parseFloat(r.metricValues[4].value) || 0;
-          return { query, cost, clicks, impressions, conversions,
-            avg_cpc: clicks > 0 ? parseFloat((cost/clicks).toFixed(2)) : 0,
-            cpa: conversions > 0 ? parseFloat((cost/conversions).toFixed(2)) : 0 };
-        }).filter(r => r.query && r.query !== '(not set)').slice(0, 30);
+          if (!query || query === '(not set)') return;
+          if (!aggMap[query]) aggMap[query] = { query, cost: 0, clicks: 0, impressions: 0, conversions: 0 };
+          aggMap[query].cost        += parseFloat(r.metricValues[0].value) || 0;
+          aggMap[query].clicks      += parseInt(r.metricValues[1].value) || 0;
+          aggMap[query].impressions += parseInt(r.metricValues[2].value) || 0;
+          aggMap[query].conversions += parseFloat(r.metricValues[4].value) || 0;
+        });
+        const rows = Object.values(aggMap)
+          .sort((a, b) => b.cost - a.cost)
+          .slice(0, 30)
+          .map(r => ({
+            ...r,
+            avg_cpc: r.clicks > 0 ? parseFloat((r.cost / r.clicks).toFixed(2)) : 0,
+            cpa:     r.conversions > 0 ? parseFloat((r.cost / r.conversions).toFixed(2)) : 0
+          }));
 
         renderTopQueriesChart(rows);
         renderTopQueriesTable(rows);
@@ -4718,41 +4727,73 @@
       }
     }
 
+    // Pricefox brand palette
+    const PF_ORANGE  = '#FF6633';
+    const PF_NAVY    = '#003D66';
+    const PF_ORANGE2 = 'rgba(255,102,51,0.80)';
+    const PF_NAVY2   = 'rgba(0,61,102,0.70)';
+
     function renderTopQueriesChart(top) {
       if (topQChart) { topQChart.destroy(); topQChart = null; }
       const top15 = top.slice(0, 15);
       topQChart = new Chart(document.getElementById('topQSpendChart').getContext('2d'), {
         type: 'bar',
         data: {
-          labels: top15.map(r => r.query.length > 30 ? r.query.slice(0, 28) + '…' : r.query),
+          labels: top15.map(r => r.query.length > 32 ? r.query.slice(0, 30) + '…' : r.query),
           datasets: [
-            { label: 'Spend (€)', data: top15.map(r => r.cost.toFixed(2)), backgroundColor: 'rgba(234,179,8,0.75)', yAxisID: 'y' },
-            { label: 'Conv', data: top15.map(r => r.conversions.toFixed(1)), backgroundColor: 'rgba(34,197,94,0.6)', type: 'bar', yAxisID: 'y1' }
+            {
+              label: 'Spend (€)',
+              data: top15.map(r => r.cost.toFixed(2)),
+              backgroundColor: top15.map((_, i) => `rgba(255,102,51,${0.95 - i * 0.04})`),
+              borderRadius: 3,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Conv',
+              data: top15.map(r => r.conversions.toFixed(1)),
+              backgroundColor: 'rgba(0,61,102,0.55)',
+              borderRadius: 3,
+              yAxisID: 'y1'
+            }
           ]
         },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#9ca3af', font: { size: 11 } } } },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#9ca3af', font: { size: 11 }, boxWidth: 12, padding: 16 } },
+            tooltip: {
+              callbacks: {
+                label: ctx => ctx.datasetIndex === 0
+                  ? ` €${parseFloat(ctx.raw).toFixed(2)}`
+                  : ` ${ctx.raw} conv`
+              }
+            }
+          },
           scales: {
-            x: { ticks: { color: '#eab308', callback: v => '€' + v }, grid: { color: 'rgba(255,255,255,0.05)' } },
-            y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { display: false } },
-            y1: { type: 'linear', position: 'right', ticks: { color: '#22c55e' }, grid: { drawOnChartArea: false } }
+            x:  { ticks: { color: PF_ORANGE, callback: v => '€' + v, font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y:  { ticks: { color: '#d1d5db', font: { size: 11 } }, grid: { display: false } },
+            y1: { type: 'linear', position: 'right', ticks: { color: PF_NAVY, font: { size: 10 } }, grid: { drawOnChartArea: false } }
           }
         }
       });
     }
 
     function renderTopQueriesTable(top) {
-      document.getElementById('topQBody').innerHTML = top.map((r, i) =>
-        '<tr>' +
-        '<td>' + (i + 1) + '</td>' +
-        '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.query) + '">' + escHtml(r.query) + '</td>' +
-        '<td class="num"><strong style="color:var(--yellow)">€' + r.cost.toFixed(2) + '</strong></td>' +
+      document.getElementById('topQBody').innerHTML = top.map((r, i) => {
+        const pct = top[0].cost > 0 ? (r.cost / top[0].cost * 100).toFixed(0) : 0;
+        return '<tr>' +
+        '<td style="color:#6b7280;font-size:11px">' + (i + 1) + '</td>' +
+        '<td style="max-width:220px">' +
+          '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.query) + '">' + escHtml(r.query) + '</div>' +
+          '<div style="height:3px;background:rgba(255,102,51,' + (0.15 + pct/100*0.85).toFixed(2) + ');border-radius:2px;margin-top:3px;width:' + pct + '%"></div>' +
+        '</td>' +
+        '<td class="num"><strong style="color:' + PF_ORANGE + '">€' + r.cost.toFixed(2) + '</strong></td>' +
         '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
-        '<td class="num">€' + r.avg_cpc.toFixed(2) + '</td>' +
-        '<td class="num">' + r.conversions.toFixed(1) + '</td>' +
-        '<td class="num">' + (r.cpa > 0 ? '€' + r.cpa.toFixed(2) : '—') + '</td>' +
-        '</tr>'
-      ).join('');
+        '<td class="num" style="color:#93c5fd">€' + r.avg_cpc.toFixed(2) + '</td>' +
+        '<td class="num" style="color:#86efac">' + r.conversions.toFixed(1) + '</td>' +
+        '<td class="num" style="color:' + (r.cpa > 0 && r.cpa < 5 ? '#86efac' : r.cpa < 20 ? '#fde68a' : '#fca5a5') + '">' + (r.cpa > 0 ? '€' + r.cpa.toFixed(2) : '—') + '</td>' +
+        '</tr>';
+      }).join('');
     }
 
     document.getElementById('topQLoadBtn').addEventListener('click', loadTopQueries);
@@ -4873,7 +4914,7 @@
         '<td class="kw-cell" title="' + escHtml(r.query) + '">' + escHtml(r.query) + '</td>' +
         '<td style="font-size:11px;color:var(--muted)">' + escHtml(r.keyword||'—') + ' <span style="opacity:0.6">[' + escHtml(r.match_type||'') + ']</span></td>' +
         '<td style="font-size:11px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.campaign||'') + '">' + escHtml(r.campaign||'—') + '</td>' +
-        '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
+        '<td class="num"><strong style="color:#FF6633">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
         '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
         '<td class="num">' + r.impressions.toLocaleString() + '</td>' +
         '<td class="num">' + (r.ctr||0) + '%</td>' +
@@ -4940,7 +4981,7 @@
         '<tr>' +
         '<td>' + (start + i + 1) + '</td>' +
         '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(r.adGroup) + '">' + escHtml(r.adGroup) + '</td>' +
-        '<td class="num"><strong style="color:var(--yellow)">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
+        '<td class="num"><strong style="color:#FF6633">\u20AC' + r.cost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong></td>' +
         '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
         '<td class="num">' + r.impressions.toLocaleString() + '</td>' +
         '<td class="num" style="color:var(--purple)">' + r.sessions.toLocaleString() + '</td>' +
