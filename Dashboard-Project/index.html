@@ -6032,12 +6032,7 @@
       return localStorage.getItem('pricefox_ahrefs_key') || '';
     }
 
-    // Pre-fill Ahrefs overview key on load
-    (function() {
-      const saved = localStorage.getItem('pricefox_ahrefs_key') || 'svkB1seekuTuec5YRX32wCpg9o-VWdAl8syjiwHG';
-      const el = document.getElementById('ahrefsOverviewKey');
-      if (el) el.value = saved;
-    })();
+    // Ahrefs key is now server-side (AHREFS_API_KEY worker secret)
 
     async function fetchAhrefsOverview() {
 
