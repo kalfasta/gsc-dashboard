@@ -2316,18 +2316,9 @@
     let selectedCampaignAG = '';
 
     // ===================== MAILCHIMP CONFIG =====================
-    const _mk = [56,98,52,53,98,97,101,98,100,99,50,48,51,57,48,101,102,57,48,98,99,48,51,102,100,52,49,55,97,57,56,53,45,117,115,49,52];
-    const MC_DEFAULT_KEY = _mk.map(c => String.fromCharCode(c)).join('');
-    const MC_DEFAULT_PROXY = 'https://patient-bird-ad34.tkalfas.workers.dev';
-    function getMcApiKey() { return localStorage.getItem('pricefox_mc_key') || MC_DEFAULT_KEY; }
-    function getMcProxyUrl() { return localStorage.getItem('pricefox_mc_proxy') || MC_DEFAULT_PROXY; }
-    async function mcApiFetch(endpoint, apiKey) {
-      const proxyBase = getMcProxyUrl();
-      if (!proxyBase) throw new Error('No proxy URL configured. Deploy the Cloudflare Worker first.');
-      const url = proxyBase.replace(/\/+$/, '') + '/mc' + endpoint;
-      const resp = await fetch(url, {
-        headers: { 'X-MC-Key': apiKey }
-      });
+    async function mcApiFetch(endpoint) {
+      const url = WORKER_BASE + '/mc' + endpoint;
+      const resp = await fetch(url, { headers: workerHeaders() });
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '');
         throw new Error('Mailchimp API error ' + resp.status + (txt ? ': ' + txt : ''));
@@ -2377,7 +2368,7 @@
       if (stored) {
         accessToken = stored;
         // Verify token is still valid
-        fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + accessToken)
+        fetch('https://www.googleapis.com/oauth2/v1/tokeninfo', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'access_token=' + encodeURIComponent(accessToken) })
           .then(r => {
             if (r.ok) {
               document.getElementById('authScreen').style.display = 'none';
@@ -2400,13 +2391,15 @@
 
     function showUserInfo() {
       sessionStorage.setItem('gsc_token', accessToken);
-      fetch('https://www.googleapis.com/oauth2/v1/userinfo?access_token=' + accessToken)
+      fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      })
         .then(r => r.json())
         .then(user => {
           const el = document.getElementById('userInfo');
           el.style.display = 'flex';
-          el.innerHTML = '<img src="' + (user.picture || '') + '" alt="">' +
-            '<span>' + (user.email || '') + '</span>' +
+          el.innerHTML = '<img src="' + escHtml(user.picture || '') + '" alt="">' +
+            '<span>' + escHtml(user.email || '') + '</span>' +
             '<button class="signout-btn" onclick="doSignOut()">Sign out</button>';
         })
         .catch(() => { });
@@ -2673,13 +2666,20 @@
       });
     }
 
+    // ===================== WORKER AUTH =====================
+    const WORKER_BASE = 'https://patient-bird-ad34.tkalfas.workers.dev';
+    const WORKER_AUTH_TOKEN = '5aac41b071bb87aa61f709f46d03f4b9f938930e3f2fe56f883494889ffb595c';
+    function workerHeaders(extra = {}) {
+      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + WORKER_AUTH_TOKEN, ...extra };
+    }
+
     // ===================== BIGQUERY ADS API =====================
-    const BQ_WORKER_URL = 'https://patient-bird-ad34.tkalfas.workers.dev/bq';
+    const BQ_WORKER_URL = WORKER_BASE + '/bq';
 
     async function bqQuery(sql) {
       const resp = await fetch(BQ_WORKER_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: workerHeaders(),
         body: JSON.stringify({ sql })
       });
       if (!resp.ok) {
@@ -5561,25 +5561,16 @@
 
     // ===================== MAILCHIMP =====================
     function saveMcKeyAndLoad() {
-      const proxyInp = document.getElementById('mcProxyInput');
-      const keyInp = document.getElementById('mcKeyInput');
-      const proxy = proxyInp.value.trim();
-      const key = keyInp.value.trim();
-      if (!proxy) { alert('Please enter the Cloudflare Worker proxy URL.'); return; }
-      if (!key || !key.includes('-')) { alert('Please enter a valid Mailchimp API key (format: xxxxx-usXX)'); return; }
-      localStorage.setItem('pricefox_mc_proxy', proxy);
-      localStorage.setItem('pricefox_mc_key', key);
+      // Mailchimp key is now server-side — just load data
       fetchMailchimpData();
     }
 
     async function fetchMailchimpData() {
-      const apiKey = getMcApiKey();
-      if (!apiKey) { alert('No Mailchimp API key set.'); return; }
       const btn = document.getElementById('mcLoadBtn');
       btn.disabled = true;
       btn.textContent = 'Loading...';
       try {
-        const json = await mcApiFetch('/campaigns?count=100&sort_field=send_time&sort_dir=DESC&fields=campaigns.id,campaigns.settings.title,campaigns.settings.subject_line,campaigns.send_time,campaigns.emails_sent,campaigns.report_summary,campaigns.status', apiKey);
+        const json = await mcApiFetch('/campaigns?count=100&sort_field=send_time&sort_dir=DESC&fields=campaigns.id,campaigns.settings.title,campaigns.settings.subject_line,campaigns.send_time,campaigns.emails_sent,campaigns.report_summary,campaigns.status');
         MC_DATA = (json.campaigns || []).map(c => ({
           id: c.id,
           title: (c.settings && c.settings.title) || '',
@@ -5904,24 +5895,10 @@
       return localStorage.getItem('pricefox_ahrefs_key') || '';
     }
 
-    // Pre-fill Ahrefs key from localStorage on load (fallback to known key)
-    (function() {
-      const DEFAULT_AHREFS_KEY = 'svkB1seekuTuec5YRX32wCpg9o-VWdAl8syjiwHG';
-      const saved = localStorage.getItem('pricefox_ahrefs_key') || DEFAULT_AHREFS_KEY;
-      if (saved) {
-        const el = document.getElementById('utmAhrefsKey');
-        if (el) el.value = saved;
-        if (!localStorage.getItem('pricefox_ahrefs_key')) {
-          localStorage.setItem('pricefox_ahrefs_key', DEFAULT_AHREFS_KEY);
-        }
-      }
-    })();
+    // Ahrefs key is now server-side (AHREFS_API_KEY worker secret)
 
     async function fetchUtmData() {
       if (!UTM_CAMPAIGNS || UTM_CAMPAIGNS.length === 0) { alert('No campaigns in the list.'); return; }
-
-      const apiKey = getAhrefsKey();
-      if (!apiKey) { alert('Please enter your Ahrefs API key.'); return; }
 
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
@@ -5948,13 +5925,10 @@
           utm_param: 'utm_campaign'
         });
 
-        // Route through proxy worker to avoid CORS (same worker as Mailchimp)
-        const proxyBase = getMcProxyUrl().replace(/\/+$/, '');
-        const resp = await fetch(proxyBase + '/ahrefs/v3/web-analytics/utm-params?' + params.toString(), {
+        // Route through proxy worker (Ahrefs key is server-side)
+        const resp = await fetch(WORKER_BASE + '/ahrefs/v3/web-analytics/utm-params?' + params.toString(), {
           method: 'GET',
-          headers: {
-            'Authorization': 'Bearer ' + apiKey
-          }
+          headers: workerHeaders()
         });
 
         if (!resp.ok) {
@@ -6066,8 +6040,6 @@
     })();
 
     async function fetchAhrefsOverview() {
-      const apiKey = getAhrefsOverviewKey();
-      if (!apiKey) { alert('Please enter your Ahrefs API key.'); return; }
 
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
@@ -6078,7 +6050,6 @@
       document.getElementById('ahrefsOverviewLoading').style.display = '';
       document.getElementById('ahrefsOverviewInfo').textContent = 'Fetching from Ahrefs...';
 
-      const proxy = getMcProxyUrl().replace(/\/+$/, '');
       const baseParams = {
         from: startDate + 'T00:00:00Z',
         to: endDate + 'T23:59:59Z',
@@ -6086,14 +6057,14 @@
         limit: '50',
         order_by: 'visitors:desc'
       };
-      const headers = { 'Authorization': 'Bearer ' + apiKey };
+      const headers = workerHeaders();
 
       try {
         const [devicesResp, countriesResp, referrersResp, browsersResp] = await Promise.all([
-          fetch(proxy + '/ahrefs/v3/web-analytics/devices?' + new URLSearchParams(baseParams), { headers }),
-          fetch(proxy + '/ahrefs/v3/web-analytics/countries?' + new URLSearchParams(baseParams), { headers }),
-          fetch(proxy + '/ahrefs/v3/web-analytics/referrers?' + new URLSearchParams({ ...baseParams, limit: '20' }), { headers }),
-          fetch(proxy + '/ahrefs/v3/web-analytics/browsers?' + new URLSearchParams(baseParams), { headers })
+          fetch(WORKER_BASE + '/ahrefs/v3/web-analytics/devices?' + new URLSearchParams(baseParams), { headers }),
+          fetch(WORKER_BASE + '/ahrefs/v3/web-analytics/countries?' + new URLSearchParams(baseParams), { headers }),
+          fetch(WORKER_BASE + '/ahrefs/v3/web-analytics/referrers?' + new URLSearchParams({ ...baseParams, limit: '20' }), { headers }),
+          fetch(WORKER_BASE + '/ahrefs/v3/web-analytics/browsers?' + new URLSearchParams(baseParams), { headers })
         ]);
 
         const [devicesJson, countriesJson, referrersJson, browsersJson] = await Promise.all([
@@ -6200,7 +6171,7 @@
     }
 
     // ── RANK TRACKER ─────────────────────────────────────────────────────────
-    const RANK_WORKER = 'https://patient-bird-ad34.tkalfas.workers.dev';
+    const RANK_WORKER = WORKER_BASE;
     let rankHistoryChart = null;
 
     function rankStatus(msg, isError) {
@@ -6341,7 +6312,7 @@
       try {
         const resp = await fetch(RANK_WORKER + '/ranks/queries', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: workerHeaders(),
           body: JSON.stringify({ queries })
         });
         if (!resp.ok) throw new Error('Worker error ' + resp.status);
@@ -6367,7 +6338,7 @@
       try {
         const resp = await fetch(RANK_WORKER + '/ranks/test', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: workerHeaders(),
           body: JSON.stringify({ query: kw })
         });
         if (!resp.ok) throw new Error('Worker error ' + resp.status);
